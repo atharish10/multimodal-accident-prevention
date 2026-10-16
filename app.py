@@ -319,16 +319,18 @@ if show_telemetry:
         simulated_helmet = st.sidebar.checkbox("Helmet Detected on All Riders", value=True)
 
 # ── HELPER: GAUGE CHART ───────────────────────────────────────────────────────
-def create_gauge(score: float, title: str, color: str, is_percentage: bool = False):
-    display_val = score * 100 if (score <= 1.0 and not is_percentage) else score
-    suffix_text = "%" if is_percentage else " / 100"
+def create_gauge(score: float, title: str, color: str, is_percentage: bool = True):
+    raw_val = float(score)
+    display_val = raw_val * 100.0 if raw_val <= 1.0 else raw_val
+    display_val = min(100.0, max(0.0, display_val))
+    suffix_text = "%"
 
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=display_val,
         domain={'x': [0, 1], 'y': [0, 1]},
         title={'text': title, 'font': {'size': 15, 'color': "#1E293B"}},
-        number={'suffix': suffix_text, 'font': {'size': 22, 'color': color}, 'valueformat': '.1f'},
+        number={'suffix': f" {suffix_text}", 'font': {'size': 22, 'color': color}, 'valueformat': '.1f'},
         gauge={
             'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#94A3B8"},
             'bar': {'color': color},
