@@ -1,0 +1,19 @@
+# Core Streamlit
+streamlit>=1.30.0
+
+# WebRTC live camera (gracefully optional)
+streamlit-webrtc>=0.47.0
+av>=10.0.0
+
+# Computer vision (headless – no GUI window dependency)
+opencv-python-headless>=4.8.0
+
+# PyTorch CPU-safe (no CUDA required)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Utilities
+numpy>=1.24.0
+pillow>=10.0.0
+pandas>=2.0.0
+plotly>=5.18.0
