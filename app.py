@@ -294,8 +294,18 @@ if input_source == "Live Camera (Webcam)" or "Live Camera" in app_mode:
     st.subheader("📹 Live Camera Continuous Traffic Risk Monitor (CNN + LSTM)")
     st.markdown("""
     Continuous rolling-sequence spatio-temporal evaluation using the **CNN + LSTM pipeline**.
-    You can point the webcam at a road scene, a video playing on another screen, or moving toy vehicles.
+    You can point the webcam at a road scene, moving vehicles, or a video playing on another screen.
     """)
+
+    with st.expander("🎬 **Recommended YouTube Traffic Test Videos for Live Camera**", expanded=False):
+        st.markdown("""
+        Open any of these sample videos on your smartphone or side-by-side screen and aim your webcam at it:
+        * 🚗 **[Wham Baam Dashcam - Near Misses & Close Calls](https://www.youtube.com/results?search_query=wham+baam+dashcam+near+miss)**
+        * 🏍️ **[Two-Wheeler Traffic & Close Call Compilation](https://www.youtube.com/results?search_query=motorcycle+close+call+dashcam)**
+        * 🛣️ **[City Traffic Highway Dashcam 4K](https://www.youtube.com/results?search_query=dashcam+driving+video+4k)**
+        """)
+        st.video("https://www.youtube.com/watch?v=1La4QzGeaaQ")
+        st.caption("Tip: Play this clip on a second screen or phone and point your laptop camera directly at it.")
 
     cam_method = st.radio("Camera Connection Type", ["WebRTC Stream (Recommended)", "Direct OpenCV / USB Webcam"], horizontal=True)
 
