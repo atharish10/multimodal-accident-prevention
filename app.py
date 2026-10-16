@@ -7,7 +7,7 @@ Features continuous Live Camera (Webcam) monitoring using CNN + LSTM rolling seq
 # ── DEPLOYMENT URL ─────────────────────────────────────────────────────────────
 # Change this single constant to point to wherever the app is hosted.
 # The "Open Deployed App" button in the sidebar will open this URL.
-APP_URL = "https://YOUR-DEPLOYED-APP-URL"
+APP_URL = "https://atharish10-multimodal-accident-prevention-app-7u8wx1.streamlit.app/"
 # ───────────────────────────────────────────────────────────────────────────────
 
 import streamlit as st
