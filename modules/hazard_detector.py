@@ -38,13 +38,13 @@ class HazardDetector:
                 aspect_ratio = float(bw) / max(1, bh)
                 if 0.6 < aspect_ratio < 3.5:
                     real_y = roi_y_start + y
-                    is_large = area > (w * h * 0.015)
-                    sev_label = "MID" if is_large else "LOW"
-                    confidence = 0.88 if is_large else 0.82
+                    is_large = area > (w * h * 0.008)
+                    sev_label = "HIGH" if area > (w * h * 0.02) else ("MID" if is_large else "LOW")
+                    confidence = 0.92 if sev_label == "HIGH" else (0.86 if is_large else 0.80)
                     
                     # Individual hazard penalty based on cavity surface area
-                    area_fraction = min(1.0, area / (w * h * 0.03))
-                    hazard_penalties.append(0.30 + (0.40 * area_fraction))
+                    area_fraction = min(1.0, area / (w * h * 0.025))
+                    hazard_penalties.append(0.35 + (0.45 * area_fraction))
 
                     hazards.append({
                         "type": "pothole",

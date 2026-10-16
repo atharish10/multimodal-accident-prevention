@@ -238,12 +238,20 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── SIDEBAR CONTROLS ──────────────────────────────────────────────────────────
-st.sidebar.header("🕹️ System Controls")
+st.sidebar.markdown("""
+<div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); padding: 12px 14px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 12px;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.80rem; font-weight: 700; color: #F8FAFC; letter-spacing: 0.05em;">SYSTEM STATUS</span>
+        <span style="background: #10B981; color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.65rem; font-weight: bold;">ONLINE • v2.4</span>
+    </div>
+    <div style="font-size: 0.72rem; color: #94A3B8; margin-top: 4px; line-height: 1.3;">
+        <b>Node:</b> <code>Edge-Cluster-AWS-01</code><br>
+        <b>Pipeline:</b> <code>ResNet-50 + YOLOv8 + BiLSTM</code>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-if APP_URL and not APP_URL.startswith("https://YOUR"):
-    st.sidebar.link_button("🚀 Open Deployed Cloud App", APP_URL, use_container_width=True)
-else:
-    st.sidebar.caption("_Set `APP_URL` in app.py to enable the deployed-app shortcut._")
+st.sidebar.link_button("💻 GitHub Repository", "https://github.com/atharish10/multimodal-accident-prevention", use_container_width=True)
 st.sidebar.markdown("---")
 
 app_mode = st.sidebar.selectbox(
@@ -277,7 +285,20 @@ if input_source == "Pre-Loaded Benchmark Samples":
         "Road Surface Potholes": "sample_pothole_road.jpg",
         "Two-Wheeler Triple-Riding / No Helmet": "sample_two_wheeler_violation.jpg"
     }
-    selected_sample = st.sidebar.selectbox("Choose Benchmark Scenario", list(sample_options.keys()))
+    
+    # Auto-match scenario to active inspection mode for intuitive presentation
+    scenario_keys = list(sample_options.keys())
+    auto_idx = 0
+    if "Pre-Crash Violation" in app_mode:
+        auto_idx = 4
+    elif "Road Surface Hazard" in app_mode:
+        auto_idx = 3
+    elif "Unified Multimodal" in app_mode:
+        auto_idx = 1
+    elif "Vehicle Damage" in app_mode:
+        auto_idx = 0
+
+    selected_sample = st.sidebar.selectbox("Choose Benchmark Scenario", scenario_keys, index=auto_idx)
     sample_path = SAMPLE_DATA_DIR / sample_options[selected_sample]
     if sample_path.exists():
         raw_image = Image.open(str(sample_path))
@@ -317,6 +338,16 @@ if show_telemetry:
     if "Road Surface Hazard" not in app_mode:
         simulated_riders = st.sidebar.slider("Two-Wheeler Rider Count", 1, 4, 2)
         simulated_helmet = st.sidebar.checkbox("Helmet Detected on All Riders", value=True)
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("""
+<div style="font-size: 0.78rem; color: #64748B; line-height: 1.4;">
+    🏛️ <b>Panimalar Engineering College</b><br>
+    <i>Dept. of AI & ML • Batch D16</i><br>
+    👨‍💻 <b>Investigators:</b> Harish AT & Barathraj AS<br>
+    👨‍🏫 <b>Supervisor:</b> Dr. A. Arun (Assoc. Prof)
+</div>
+""", unsafe_allow_html=True)
 
 # ── HELPER: GAUGE CHART ───────────────────────────────────────────────────────
 def create_gauge(score: float, title: str, color: str, is_percentage: bool = True):
