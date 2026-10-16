@@ -307,9 +307,65 @@ if input_source == "Live Camera (Webcam)" or "Live Camera" in app_mode:
         st.video("https://www.youtube.com/watch?v=1La4QzGeaaQ")
         st.caption("Tip: Play this clip on a second screen or phone and point your laptop camera directly at it.")
 
-    cam_method = st.radio("Camera Connection Type", ["WebRTC Stream (Recommended)", "Direct OpenCV / USB Webcam"], horizontal=True)
+    cam_method = st.radio(
+        "Camera Mode",
+        [
+            "📸 Browser Camera Snapshot (Guaranteed on Cloud / Phone)",
+            "🎥 WebRTC Continuous Stream (with TURN Relay)",
+            "💻 Direct Local USB / OpenCV Camera (Localhost Only)"
+        ],
+        horizontal=True
+    )
 
-    if cam_method == "WebRTC Stream (Recommended)" and HAS_WEBRTC:
+    # MODE A: Browser Native Camera (100% reliable on Cloud and mobile, zero firewall/STUN/TURN issues)
+    if "Browser Camera Snapshot" in cam_method:
+        st.info("💡 Point your phone or laptop camera at a road scene, traffic video, or toy cars, then capture a frame:")
+        camera_photo = st.camera_input("Point camera at traffic scene / phone video")
+        
+        if camera_photo is not None:
+            photo_bytes = camera_photo.getvalue()
+            nparr = np.frombuffer(photo_bytes, np.uint8)
+            frame_bgr = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            with st.spinner("Processing frame with spatio-temporal CNN + LSTM pipeline..."):
+                res = lstm_pipeline.process_frame(
+                    frame_bgr,
+                    simulated_speed=simulated_speed,
+                    rider_count=simulated_riders,
+                    helmet_detected=simulated_helmet
+                )
+                annotated_rgb = cv2.cvtColor(res["annotated_frame"], cv2.COLOR_BGR2RGB)
+
+            col1, col2 = st.columns([1.2, 1])
+            with col1:
+                st.image(annotated_rgb, caption="AI Camera HUD & Trajectory Overlay", use_container_width=True)
+
+            with col2:
+                st.markdown(f"""
+                <div class="badge-card" style="background-color: {res['severity_color']};">
+                    TEMPORAL RISK: {res['severity_label'].upper()}
+                </div>
+                """, unsafe_allow_html=True)
+                st.write("")
+                st.plotly_chart(
+                    create_gauge(res["risk_score"], "Rolling Risk Score", res["severity_color"]),
+                    use_container_width=True
+                )
+                m1, m2 = st.columns(2)
+                with m1:
+                    st.metric("Motion / Looming Rate", f"{res['motion_rate']}%")
+                with m2:
+                    st.metric("Severity Tier", res["severity_tier"])
+
+            st.write("#### Active Safety Warnings & Status:")
+            for w in res["warnings"]:
+                if "No active" in w or "normal" in w.lower():
+                    st.success(f"✅ {w}")
+                else:
+                    st.error(f"⚠️ {w}")
+
+    # MODE B: WebRTC Stream with Multi-Region STUN & TURN Relay
+    elif "WebRTC Continuous Stream" in cam_method and HAS_WEBRTC:
         class WebRTCRiskProcessor(VideoProcessorBase):
             def __init__(self):
                 self.pipeline = RollingSequenceRiskPipeline(window_size=10)
@@ -324,18 +380,34 @@ if input_source == "Live Camera (Webcam)" or "Live Camera" in app_mode:
                 )
                 return av.VideoFrame.from_ndarray(res["annotated_frame"], format="bgr24")
 
-        rtc_config = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+        # Configured with both Google STUN and OpenRelay public TURN servers to traverse cloud firewalls
+        rtc_config = RTCConfiguration({
+            "iceServers": [
+                {"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"]},
+                {
+                    "urls": [
+                        "turn:openrelay.metered.ca:80",
+                        "turn:openrelay.metered.ca:443",
+                        "turns:openrelay.metered.ca:443?transport=tcp"
+                    ],
+                    "username": "openrelayproject",
+                    "credential": "openrelayproject"
+                }
+            ]
+        })
+
         webrtc_ctx = webrtc_streamer(
             key="traffic-cnn-lstm",
             video_processor_factory=WebRTCRiskProcessor,
             rtc_configuration=rtc_config,
-            media_stream_constraints={"video": True, "audio": False}
+            media_stream_constraints={"video": True, "audio": False},
+            async_processing=True
         )
 
-        st.info("💡 Click **'START'** above to enable your laptop webcam. The CNN+LSTM processes frames continuously over a rolling buffer.")
+        st.info("💡 Click **'START'** above to enable your webcam. If your network firewall blocks WebRTC peer-to-peer streaming, switch to **'📸 Browser Camera Snapshot'** above for guaranteed instant capture.")
 
+    # MODE C: Direct OpenCV Local Camera
     else:
-        # Fallback OpenCV Direct Camera Capture
         run_cam = st.checkbox("Start Live Webcam Stream (Direct OpenCV)", value=False)
         cam_placeholder = st.empty()
         metric_col1, metric_col2, metric_col3 = st.columns(3)
@@ -343,7 +415,7 @@ if input_source == "Live Camera (Webcam)" or "Live Camera" in app_mode:
         if run_cam:
             cap = cv2.VideoCapture(0)
             if not cap.isOpened():
-                st.error("Could not access local webcam. Please check device camera permissions.")
+                st.error("Could not access local hardware webcam. If you are on the deployed cloud website, please switch to '📸 Browser Camera Snapshot' above.")
             else:
                 lstm_pipeline.reset()
                 stop_btn = st.button("Stop Camera Stream")
