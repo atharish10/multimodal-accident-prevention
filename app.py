@@ -26,7 +26,22 @@ try:
 except ImportError:
     HAS_WEBRTC = False
 
+import importlib
 from config import SEVERITY_LEVELS, BASE_DIR, SAMPLE_DATA_DIR
+import modules.damage_classifier
+import modules.violation_detector
+import modules.hazard_detector
+import modules.risk_fusion
+import modules.temporal_risk_lstm
+import modules.report_generator
+
+importlib.reload(modules.damage_classifier)
+importlib.reload(modules.violation_detector)
+importlib.reload(modules.hazard_detector)
+importlib.reload(modules.risk_fusion)
+importlib.reload(modules.temporal_risk_lstm)
+importlib.reload(modules.report_generator)
+
 from modules.damage_classifier import DamageClassifier
 from modules.violation_detector import ViolationDetector
 from modules.hazard_detector import HazardDetector
@@ -1466,7 +1481,10 @@ with tab_hazards:
     road_bgr = cv2.cvtColor(np.array(raw_road_img.convert("RGB")), cv2.COLOR_RGB2BGR)
 
     with st.spinner("Scanning road surface defects and cavity depressions..."):
-        haz_res = hazard_det.scan_road_hazards(road_bgr, simulated_depth_cm=pothole_depth_cm)
+        try:
+            haz_res = hazard_det.scan_road_hazards(road_bgr, simulated_depth_cm=pothole_depth_cm)
+        except TypeError:
+            haz_res = hazard_det.scan_road_hazards(road_bgr)
         annotated_road_rgb = cv2.cvtColor(haz_res["annotated_frame"], cv2.COLOR_BGR2RGB)
 
         h_score = haz_res["hazard_risk_score"]
