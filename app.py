@@ -45,59 +45,92 @@ st.set_page_config(
 # ── Custom Executive Dark/Slate Design System ─────────────────────────────────
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
     /* Global App Canvas & Background */
     .stApp {
         background-color: #0B0F19 !important;
         background-image: 
             radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.08) 0px, transparent 50%),
             radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.06) 0px, transparent 50%),
-            radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.5) 0px, transparent 50%) !important;
+            radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.6) 0px, transparent 50%) !important;
         color: #F8FAFC !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     }
     
     .block-container {
-        padding-top: 3.2rem;
-        padding-bottom: 2.5rem;
+        padding-top: 2.8rem;
+        padding-bottom: 3rem;
         max-width: 1440px;
     }
     
     /* Sidebar Styling */
     section[data-testid="stSidebar"] {
         background-color: #070A12 !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
     }
-    
-    /* Typography */
+    section[data-testid="stSidebar"] hr {
+        border-color: rgba(255, 255, 255, 0.08) !important;
+        margin: 1.2rem 0 !important;
+    }
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3 {
+        color: #F8FAFC !important;
+        font-size: 0.92rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    /* Typography Hierarchy */
     h1, h2, h3, h4, .main-title {
         color: #F8FAFC !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-        letter-spacing: -0.02em;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        letter-spacing: -0.025em;
+        font-weight: 700;
     }
     p, span, label, div {
         color: #CBD5E1;
+    }
+    strong, b {
+        color: #F8FAFC;
+    }
+    small, .text-muted {
+        color: #94A3B8;
     }
     
     /* Executive Card Surface */
     .saas-card {
         background: #111827;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 20px 24px;
         margin-bottom: 16px;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        transition: all 0.25s ease;
+    }
+    .saas-card:hover {
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
     
+    /* High-Precision KPI Tile */
     .kpi-tile {
-        background: rgba(255, 255, 255, 0.03);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.015) 100%);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
-        padding: 14px 18px;
+        border-radius: 12px;
+        padding: 16px 20px;
         height: 100%;
-        transition: all 0.2s ease;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
     }
     .kpi-tile:hover {
-        border-color: rgba(59, 130, 246, 0.4);
-        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(59, 130, 246, 0.45);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 0 16px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     }
     .kpi-label {
         font-size: 0.72rem;
@@ -105,48 +138,53 @@ st.markdown("""
         color: #94A3B8;
         text-transform: uppercase;
         letter-spacing: 0.06em;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
     }
     .kpi-value {
-        font-size: 1.3rem;
+        font-size: 1.35rem;
         font-weight: 800;
         color: #F8FAFC;
+        letter-spacing: -0.02em;
+        line-height: 1.2;
     }
     .kpi-subtext {
         font-size: 0.75rem;
         color: #94A3B8;
-        margin-top: 4px;
+        margin-top: 5px;
     }
     
-    /* Severity Badges */
+    /* Modern Severity Badges (Pills) */
     .sev-badge-low {
-        background: rgba(16, 185, 129, 0.12);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.08) 100%);
         border: 1px solid rgba(16, 185, 129, 0.35);
-        color: #10B981;
-        padding: 10px 18px;
-        border-radius: 8px;
+        color: #34D399;
+        box-shadow: 0 0 14px rgba(16, 185, 129, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        padding: 11px 18px;
+        border-radius: 9px;
         font-weight: 800;
         font-size: 1.05rem;
         text-align: center;
         letter-spacing: 0.04em;
     }
     .sev-badge-mid {
-        background: rgba(245, 158, 11, 0.12);
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(217, 119, 6, 0.08) 100%);
         border: 1px solid rgba(245, 158, 11, 0.35);
-        color: #F59E0B;
-        padding: 10px 18px;
-        border-radius: 8px;
+        color: #FBBF24;
+        box-shadow: 0 0 14px rgba(245, 158, 11, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        padding: 11px 18px;
+        border-radius: 9px;
         font-weight: 800;
         font-size: 1.05rem;
         text-align: center;
         letter-spacing: 0.04em;
     }
     .sev-badge-high {
-        background: rgba(239, 68, 68, 0.12);
-        border: 1px solid rgba(239, 68, 68, 0.35);
-        color: #EF4444;
-        padding: 10px 18px;
-        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(185, 28, 28, 0.10) 100%);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #F87171;
+        box-shadow: 0 0 18px rgba(239, 68, 68, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        padding: 11px 18px;
+        border-radius: 9px;
         font-weight: 800;
         font-size: 1.05rem;
         text-align: center;
@@ -155,59 +193,306 @@ st.markdown("""
     
     /* Clean Protocol Card */
     .protocol-card {
-        background: rgba(15, 23, 42, 0.6);
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(17, 24, 39, 0.6) 100%);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-left: 4px solid #3B82F6;
-        border-radius: 8px;
-        padding: 14px 18px;
+        border-radius: 10px;
+        padding: 16px 20px;
         margin-top: 12px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
         font-size: 0.88rem;
-        line-height: 1.5;
+        line-height: 1.55;
         color: #E2E8F0;
     }
     
-    /* Streamlit Tabs Styling */
+    /* Streamlit Segmented Tabs */
+    div[data-testid="stTabs"] [role="tablist"] {
+        gap: 6px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 4px;
+        margin-bottom: 16px;
+    }
     div[data-testid="stTabs"] button {
         color: #94A3B8 !important;
-        font-weight: 600 !important;
+        font-weight: 500 !important;
         font-size: 0.88rem !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
         padding: 8px 16px !important;
-        transition: all 0.2s ease !important;
+        margin-right: 2px !important;
+        border: 1px solid transparent !important;
+        background: transparent !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    div[data-testid="stTabs"] button:hover {
+        color: #F8FAFC !important;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.06) !important;
     }
     div[data-testid="stTabs"] button[aria-selected="true"] {
-        color: #F8FAFC !important;
-        background: rgba(59, 130, 246, 0.12) !important;
+        color: #FFFFFF !important;
+        background: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, rgba(37, 99, 235, 0.08) 100%) !important;
+        border: 1px solid rgba(59, 130, 246, 0.35) !important;
         border-bottom: 2px solid #3B82F6 !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 10px rgba(37, 99, 235, 0.25) !important;
     }
     
-    /* Buttons */
+    /* Tactile Modern Buttons */
     div.stButton > button {
-        background-color: #1E293B !important;
+        background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%) !important;
         color: #F8FAFC !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        border-radius: 8px !important;
+        border: 1px solid rgba(255, 255, 255, 0.13) !important;
+        border-radius: 9px !important;
         font-weight: 600 !important;
-        transition: all 0.2s ease !important;
+        font-size: 0.85rem !important;
+        letter-spacing: -0.01em !important;
+        padding: 0.55rem 1.15rem !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     div.stButton > button:hover {
-        background-color: #2563EB !important;
+        background: linear-gradient(180deg, #2563EB 0%, #1D4ED8 100%) !important;
         border-color: #3B82F6 !important;
         color: #FFFFFF !important;
-        transform: translateY(-1px);
+        transform: translateY(-1.5px) !important;
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
     }
-    
-    /* Expander */
+    div.stButton > button:active {
+        transform: translateY(0.5px) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    /* Primary / Download Button */
+    div[data-testid="stDownloadButton"] > button {
+        background: linear-gradient(180deg, #2563EB 0%, #1D4ED8 100%) !important;
+        color: #FFFFFF !important;
+        border: 1px solid #60A5FA !important;
+        border-radius: 9px !important;
+        font-weight: 700 !important;
+        font-size: 0.88rem !important;
+        letter-spacing: -0.01em !important;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    div[data-testid="stDownloadButton"] > button:hover {
+        background: linear-gradient(180deg, #3B82F6 0%, #2563EB 100%) !important;
+        box-shadow: 0 6px 22px rgba(37, 99, 235, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+        transform: translateY(-2px) !important;
+    }
+    div[data-testid="stDownloadButton"] > button:active {
+        transform: translateY(0.5px) !important;
+    }
+
+    /* Sidebar Link Button */
+    a[data-testid="stLinkButton"], 
+    div[data-testid="stSidebar"] a[data-testid="stLinkButton"] {
+        background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 9px !important;
+        color: #F8FAFC !important;
+        font-weight: 600 !important;
+        text-align: center !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    a[data-testid="stLinkButton"]:hover {
+        background: linear-gradient(180deg, #2563EB 0%, #1D4ED8 100%) !important;
+        border-color: #3B82F6 !important;
+        color: #FFFFFF !important;
+        transform: translateY(-1.5px) !important;
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    }
+
+    /* Form Controls & Inputs */
+    div[data-baseweb="select"] > div {
+        background-color: #0F172A !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 9px !important;
+        color: #F8FAFC !important;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-baseweb="select"]:focus-within > div {
+        border-color: #3B82F6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+    }
+    ul[role="listbox"] {
+        background-color: #0F172A !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8) !important;
+    }
+    li[role="option"] {
+        color: #CBD5E1 !important;
+        font-size: 0.86rem !important;
+        transition: all 0.15s ease !important;
+    }
+    li[role="option"]:hover, li[role="option"][aria-selected="true"] {
+        background-color: rgba(59, 130, 246, 0.18) !important;
+        color: #60A5FA !important;
+    }
+
+    div[data-testid="stTextInput"] input, 
+    div[data-testid="stTextArea"] textarea {
+        background-color: #0F172A !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 9px !important;
+        color: #F8FAFC !important;
+        font-size: 0.88rem !important;
+        padding: 10px 14px !important;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-testid="stTextInput"] input:focus, 
+    div[data-testid="stTextArea"] textarea:focus {
+        border-color: #3B82F6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+        outline: none !important;
+    }
+
+    /* Sliders */
+    div[data-testid="stSlider"] div[role="slider"] {
+        background-color: #3B82F6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), 0 2px 6px rgba(0, 0, 0, 0.5) !important;
+        border: 2px solid #FFFFFF !important;
+        width: 17px !important; 
+        height: 17px !important;
+    }
+
+    /* File Uploader */
+    div[data-testid="stFileUploader"] section {
+        background-color: rgba(17, 24, 39, 0.6) !important;
+        border: 1.5px dashed rgba(255, 255, 255, 0.18) !important;
+        border-radius: 12px !important;
+        padding: 18px !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-testid="stFileUploader"] section:hover {
+        border-color: #3B82F6 !important;
+        background-color: rgba(37, 99, 235, 0.06) !important;
+        box-shadow: 0 0 16px rgba(59, 130, 246, 0.12) !important;
+    }
+
+    /* Expanders */
     div[data-testid="stExpander"] {
-        background: rgba(17, 24, 39, 0.7) !important;
+        background: rgba(17, 24, 39, 0.75) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+        overflow: hidden !important;
+        transition: border-color 0.2s ease !important;
     }
-    
-    /* Code font */
-    .telemetry-code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    div[data-testid="stExpander"]:hover {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    div[data-testid="stExpander"] details summary {
+        color: #F8FAFC !important;
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        padding: 12px 18px !important;
+        transition: background 0.2s ease !important;
+    }
+    div[data-testid="stExpander"] details summary:hover {
+        background: rgba(255, 255, 255, 0.03) !important;
+    }
+
+    /* Tables & Dataframes */
+    div[data-testid="stDataFrame"] {
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+        overflow: hidden !important;
+    }
+
+    /* Alerts */
+    div[data-testid="stAlert"] {
+        border-radius: 9px !important;
+        padding: 12px 16px !important;
+        font-size: 0.86rem !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    /* Live Status Pill & Pulse Dot */
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.45; transform: scale(0.85); }
+    }
+    .live-pulse-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        background: #10B981;
+        border-radius: 50%;
+        margin-right: 6px;
+        box-shadow: 0 0 8px #10B981;
+        animation: pulse-dot 2s infinite ease-in-out;
+    }
+    .header-status-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 13px;
+        border-radius: 9999px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        backdrop-filter: blur(8px);
+    }
+    .header-status-success {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #34D399;
+        font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+    .header-status-info {
+        background: rgba(59, 130, 246, 0.12);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        color: #38BDF8;
+        font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+    .header-status-purple {
+        background: rgba(139, 92, 246, 0.12);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        color: #C084FC;
+    }
+
+    /* Sidebar Status & Credits Cards */
+    .sidebar-status-card {
+        background: linear-gradient(145deg, rgba(17, 24, 39, 0.85) 0%, rgba(15, 23, 42, 0.65) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 13px 15px;
+        margin-bottom: 14px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .sidebar-active-badge {
+        background: rgba(16, 185, 129, 0.18);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: #34D399;
+        padding: 2px 7px;
+        border-radius: 9999px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+    .sidebar-credits-card {
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        padding: 14px 15px;
+        line-height: 1.45;
+    }
+
+    /* Monospace telemetry code */
+    code, .telemetry-code {
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
         font-size: 0.80rem;
+    }
+    code {
+        background: #070A12 !important;
+        color: #38BDF8 !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 5px !important;
+        padding: 2px 6px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -284,30 +569,30 @@ def create_gauge(score: float, title: str, color: str, is_percentage: bool = Tru
 
 # ── TOP PRESENTATION HEADER ───────────────────────────────────────────────────
 st.markdown("""
-<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 14px; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 16px; margin-bottom: 22px; flex-wrap: wrap; gap: 14px;">
     <div>
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="background: linear-gradient(135deg, #2563EB, #1D4ED8); color: white; border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.15rem; box-shadow: 0 2px 8px rgba(37,99,235,0.35);">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); color: white; border-radius: 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.25rem; box-shadow: 0 0 16px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); border: 1px solid rgba(255, 255, 255, 0.15);">
                 M
             </div>
             <div>
-                <h1 style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2; color: inherit;">
+                <h1 style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.025em; margin: 0; line-height: 1.2; color: #F8FAFC;">
                     Multimodal Road Safety & Damage Intelligence
                 </h1>
-                <div style="font-size: 0.82rem; color: #94A3B8; margin-top: 2px;">
+                <div style="font-size: 0.82rem; color: #94A3B8; margin-top: 3px; font-weight: 500;">
                     Department of AIML • Autonomous Pre-Crash Forecasting & Vehicle Damage Assessment
                 </div>
             </div>
         </div>
     </div>
     <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <span style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: #10B981; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; font-family: monospace;">
-            ● CLUSTER ONLINE
+        <span class="header-status-pill header-status-success">
+            <span class="live-pulse-dot"></span>CLUSTER ONLINE
         </span>
-        <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); color: #38BDF8; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; font-family: monospace;">
+        <span class="header-status-pill header-status-info">
             LATENCY: 22.4ms
         </span>
-        <span style="background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.3); color: #A78BFA; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">
+        <span class="header-status-pill header-status-purple">
             PEC AIML • BATCH D16
         </span>
     </div>
@@ -316,14 +601,14 @@ st.markdown("""
 
 # ── SIDEBAR CONTROLS ──────────────────────────────────────────────────────────
 st.sidebar.markdown("""
-<div style="background: rgba(15, 23, 42, 0.8); padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 14px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span style="font-weight: 700; font-size: 0.75rem; color: #94A3B8; letter-spacing: 0.05em; text-transform: uppercase;">Edge Cluster Status</span>
-        <span style="background: #065F46; color: #34D399; padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;">ACTIVE</span>
+<div class="sidebar-status-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-weight: 700; font-size: 0.74rem; color: #94A3B8; letter-spacing: 0.06em; text-transform: uppercase;">Edge Cluster Status</span>
+        <span class="sidebar-active-badge">ACTIVE</span>
     </div>
-    <div style="font-size: 0.82rem; color: #CBD5E1; line-height: 1.4;">
-        <b>Engine:</b> ResNet-50 + YOLOv8 + BiLSTM<br>
-        <b>Region:</b> ap-south-1 (Mumbai Node)
+    <div style="font-size: 0.82rem; color: #CBD5E1; line-height: 1.5;">
+        <span style="color: #94A3B8;">Engine:</span> <span style="color: #F8FAFC; font-weight: 600;">ResNet-50 + YOLOv8 + BiLSTM</span><br>
+        <span style="color: #94A3B8;">Region:</span> <span style="color: #F8FAFC; font-weight: 600;">ap-south-1 (Mumbai Node)</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -342,15 +627,17 @@ simulated_helmet = st.sidebar.checkbox("Helmet Detected on Riders", value=False)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
-<div style="font-size: 0.78rem; color: #94A3B8; line-height: 1.45;">
-    <b>Panimalar Engineering College</b><br>
-    <i>Department of AI & Machine Learning</i><br>
-    Final Year Project • Batch D16<br><br>
-    <b>Student Investigators:</b><br>
-    • Harish AT<br>
-    • Barathraj AS<br><br>
-    <b>Supervisor:</b><br>
-    Dr. A. Arun, Associate Professor
+<div class="sidebar-credits-card">
+    <div style="font-weight: 700; font-size: 0.82rem; color: #F8FAFC; margin-bottom: 2px;">Panimalar Engineering College</div>
+    <div style="font-size: 0.78rem; color: #60A5FA; font-weight: 500; margin-bottom: 6px;">Department of AI & Machine Learning</div>
+    <div style="font-size: 0.74rem; color: #94A3B8; margin-bottom: 10px;">Final Year Project • Batch D16</div>
+    <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 8px; font-size: 0.78rem; line-height: 1.5; color: #CBD5E1;">
+        <b style="color: #94A3B8; font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px;">Student Investigators</b>
+        • Harish AT<br>
+        • Barathraj AS<br>
+        <b style="color: #94A3B8; font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-top: 8px; margin-bottom: 2px;">Supervisor</b>
+        Dr. A. Arun, Associate Professor
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -584,7 +871,7 @@ with tab_video:
                 risk_pct = float(sim_res["risk_score"] * 100)
 
                 metrics_ph.markdown(f"""
-                <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 16px; margin-bottom: 12px;">
+                <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
                         <span style="font-size: 0.80rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em;">Rolling Temporal Risk</span>
                         <span style="font-size: 1.4rem; font-weight: 800; color: {sim_res['severity_color']};">{risk_pct:.1f}%</span>
@@ -664,7 +951,7 @@ with tab_video:
 
                         r_pct = float(res["risk_score"] * 100)
                         info_display.markdown(f"""
-                        <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; padding: 16px;">
+                        <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
                                 <span style="font-size: 0.80rem; font-weight: 700; color: #94A3B8;">Rolling Temporal Risk</span>
                                 <span style="font-size: 1.4rem; font-weight: 800; color: {res['severity_color']};">{r_pct:.1f}%</span>
