@@ -19,7 +19,7 @@ class DamageClassifier:
         self.levels = SEVERITY_LEVELS
         self.thresholds = SEVERITY_THRESHOLDS
 
-    def assess_damage(self, image_np: np.ndarray, detected_damages: List[Dict[str, Any]] = None, scenario_hint: str = None) -> Dict[str, Any]:
+    def assess_damage(self, image_np: np.ndarray, detected_damages: List[Dict[str, Any]] = None, scenario_hint: str = None, *args, **kwargs) -> Dict[str, Any]:
         """
         Calculates damage severity based on detected bounding boxes, surface area coverage,
         damage categories, and insurance triage protocols.
@@ -122,7 +122,7 @@ class DamageClassifier:
             "annotated_image": annotated_img
         }
 
-    def _detect_vehicle_damages(self, img: np.ndarray, scenario_hint: str = None) -> List[Dict[str, Any]]:
+    def _detect_vehicle_damages(self, img: np.ndarray, scenario_hint: str = None, *args, **kwargs) -> List[Dict[str, Any]]:
         """
         Accurate computer vision scan distinguishing Low, Mid, and High severity on real photos.
         """

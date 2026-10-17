@@ -52,19 +52,18 @@ st.markdown("""
         max-width: 1440px;
     }
     
-    /* Executive Card Surface */
+    /* Executive Card Surface (Theme-Adaptive) */
     .saas-card {
-        background: #111827;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(148, 163, 184, 0.06);
+        border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 10px;
         padding: 18px 22px;
         margin-bottom: 16px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
     }
     
     .kpi-tile {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(148, 163, 184, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.18);
         border-radius: 8px;
         padding: 12px 16px;
         height: 100%;
@@ -72,7 +71,7 @@ st.markdown("""
     .kpi-label {
         font-size: 0.72rem;
         font-weight: 700;
-        color: #94A3B8;
+        color: #64748B;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         margin-bottom: 4px;
@@ -80,7 +79,7 @@ st.markdown("""
     .kpi-value {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #F8FAFC;
+        color: inherit;
     }
     .kpi-subtext {
         font-size: 0.75rem;
@@ -125,14 +124,15 @@ st.markdown("""
     
     /* Clean Protocol Card */
     .protocol-card {
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(148, 163, 184, 0.08);
+        border: 1px solid rgba(148, 163, 184, 0.2);
         border-left: 4px solid #3B82F6;
         border-radius: 8px;
         padding: 14px 18px;
         margin-top: 12px;
         font-size: 0.88rem;
         line-height: 1.5;
+        color: inherit;
     }
     
     /* Code font */
@@ -143,17 +143,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Cache and Load AI Modules ─────────────────────────────────────────────────
-@st.cache_resource
-def load_modules():
-    damage_clf = DamageClassifier()
-    violation_det = ViolationDetector()
-    hazard_det = HazardDetector()
-    fusion_engine = MultimodalRiskFusionEngine()
-    lstm_pipeline = RollingSequenceRiskPipeline(window_size=10)
-    return damage_clf, violation_det, hazard_det, fusion_engine, lstm_pipeline
-
-damage_clf, violation_det, hazard_det, fusion_engine, lstm_pipeline = load_modules()
+# ── AI Modules Initialization ─────────────────────────────────────────────────
+damage_clf = DamageClassifier()
+violation_det = ViolationDetector()
+hazard_det = HazardDetector()
+fusion_engine = MultimodalRiskFusionEngine()
+lstm_pipeline = RollingSequenceRiskPipeline(window_size=10)
 
 # ── Session State for Inter-Tab Intelligence ───────────────────────────────────
 if "current_assessment" not in st.session_state:
@@ -227,10 +222,10 @@ st.markdown("""
                 M
             </div>
             <div>
-                <h1 style="font-size: 1.55rem; font-weight: 700; letter-spacing: -0.02em; margin: 0; line-height: 1.2; color: #F8FAFC;">
+                <h1 style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2; color: inherit;">
                     Multimodal Road Safety & Damage Intelligence
                 </h1>
-                <div style="font-size: 0.82rem; color: #94A3B8; margin-top: 2px;">
+                <div style="font-size: 0.82rem; color: #64748B; margin-top: 2px;">
                     Department of AIML • Autonomous Pre-Crash Forecasting & Vehicle Damage Assessment
                 </div>
             </div>
@@ -357,7 +352,7 @@ with tab_damage:
     car_bgr = cv2.cvtColor(np.array(raw_car_img.convert("RGB")), cv2.COLOR_RGB2BGR)
 
     with st.spinner("Analyzing structural deformity and impact boundaries..."):
-        damage_res = damage_clf.assess_damage(car_bgr, scenario_hint=scenario_hint)
+        damage_res = damage_clf.assess_damage(car_bgr, None, scenario_hint)
         annotated_car_rgb = cv2.cvtColor(damage_res["annotated_image"], cv2.COLOR_BGR2RGB)
 
         # Update Session State
