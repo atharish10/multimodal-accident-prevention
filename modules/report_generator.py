@@ -222,11 +222,12 @@ def generate_incident_pdf(
 
     # Vehicle Damage
     if damage_results:
-        dmg_pct = damage_results.get("severity_score", 0.0)
-        dmg_class = damage_results.get("damage_class", "None")
-        deformation = damage_results.get("deformation_index", 0.0)
-        crack_score = damage_results.get("crack_score", 0.0)
-        desc = f"Class: {dmg_class} | Deformation Index: {deformation:.2f} | Surface Crack Index: {crack_score:.2f}"
+        raw_score = damage_results.get("severity_score", 0.0)
+        dmg_pct = raw_score * 100.0 if raw_score <= 1.0 else raw_score
+        dmg_class = damage_results.get("damage_class", damage_results.get("severity_label", "Structural Impact"))
+        area_pct = damage_results.get("damage_area_percent", 0.0)
+        repair_est = damage_results.get("repair_estimate", "Standard Workshop Repair")
+        desc = f"{dmg_class} | Area: {area_pct:.1f}% | Est: {repair_est}"
         modality_rows.append([
             Paragraph("Structural Damage (CNN)", body_style),
             Paragraph(desc, body_style),
@@ -241,12 +242,15 @@ def generate_incident_pdf(
 
     # Traffic Violations
     if violation_results:
-        viol_score = violation_results.get("violation_score", 0.0)
-        viols = violation_results.get("violations_detected", [])
+        raw_viol = violation_results.get("violation_score", violation_results.get("risk_score", 0.0))
+        viol_score = raw_viol * 100.0 if raw_viol <= 1.0 else raw_viol
+        viols = violation_results.get("violations_detected", violation_results.get("violations", []))
         viol_txt = ", ".join(viols) if viols else "No safety violations registered"
+        speed_val = violation_results.get("speed_kmh")
+        speed_txt = f" (Speed: {speed_val:.1f} km/h)" if speed_val is not None else ""
         modality_rows.append([
             Paragraph("Traffic Violations (YOLOv8)", body_style),
-            Paragraph(f"Detected: {viol_txt}", body_style),
+            Paragraph(f"Detected: {viol_txt}{speed_txt}", body_style),
             Paragraph(f"{viol_score:.1f}%", body_bold)
         ])
     else:
@@ -258,12 +262,23 @@ def generate_incident_pdf(
 
     # Road Hazards
     if hazard_results:
-        haz_score = hazard_results.get("hazard_score", 0.0)
+        raw_haz = hazard_results.get("hazard_score", hazard_results.get("hazard_risk_score", 0.0))
+        haz_score = raw_haz * 100.0 if raw_haz <= 1.0 else raw_haz
         hazards = hazard_results.get("hazards_detected", [])
-        haz_txt = ", ".join(hazards) if hazards else "Road surface clear"
+        haz_list = []
+        for h in hazards:
+            if isinstance(h, dict):
+                h_type = h.get("type", "Pothole").capitalize()
+                h_sev = h.get("severity", "DEFECT")
+                haz_list.append(f"{h_type} ({h_sev})")
+            else:
+                haz_list.append(str(h))
+        haz_txt = ", ".join(haz_list) if haz_list else "Road surface clear"
+        pavement = hazard_results.get("pavement_state")
+        pave_txt = f" | {pavement}" if pavement else ""
         modality_rows.append([
             Paragraph("Road Hazards & Surface", body_style),
-            Paragraph(f"Detected: {haz_txt}", body_style),
+            Paragraph(f"Detected: {haz_txt}{pave_txt}", body_style),
             Paragraph(f"{haz_score:.1f}%", body_bold)
         ])
     else:
