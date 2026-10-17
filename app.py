@@ -52,6 +52,12 @@ st.markdown("""
         max-width: 1440px;
     }
     
+    /* Theme Adaptive Typography */
+    h1, h2, h3, h4, .main-title {
+        color: var(--text-color, #1E293B) !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    
     /* Executive Card Surface (Theme-Adaptive) */
     .saas-card {
         background: rgba(148, 163, 184, 0.06);
