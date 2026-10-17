@@ -45,51 +45,76 @@ st.set_page_config(
 # ── Custom Executive Dark/Slate Design System ─────────────────────────────────
 st.markdown("""
 <style>
-    /* Global Base */
+    /* Global App Canvas & Background */
+    .stApp {
+        background-color: #0B0F19 !important;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.08) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.06) 0px, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.5) 0px, transparent 50%) !important;
+        color: #F8FAFC !important;
+    }
+    
     .block-container {
         padding-top: 3.2rem;
         padding-bottom: 2.5rem;
         max-width: 1440px;
     }
     
-    /* Theme Adaptive Typography */
-    h1, h2, h3, h4, .main-title {
-        color: var(--text-color, #1E293B) !important;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* Sidebar Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #070A12 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
     
-    /* Executive Card Surface (Theme-Adaptive) */
+    /* Typography */
+    h1, h2, h3, h4, .main-title {
+        color: #F8FAFC !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+        letter-spacing: -0.02em;
+    }
+    p, span, label, div {
+        color: #CBD5E1;
+    }
+    
+    /* Executive Card Surface */
     .saas-card {
-        background: rgba(148, 163, 184, 0.06);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 10px;
-        padding: 18px 22px;
+        background: #111827;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 20px 24px;
         margin-bottom: 16px;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
     }
     
     .kpi-tile {
-        background: rgba(148, 163, 184, 0.08);
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        border-radius: 8px;
-        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 14px 18px;
         height: 100%;
+        transition: all 0.2s ease;
+    }
+    .kpi-tile:hover {
+        border-color: rgba(59, 130, 246, 0.4);
+        background: rgba(255, 255, 255, 0.04);
     }
     .kpi-label {
         font-size: 0.72rem;
         font-weight: 700;
-        color: #64748B;
+        color: #94A3B8;
         text-transform: uppercase;
         letter-spacing: 0.06em;
         margin-bottom: 4px;
     }
     .kpi-value {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: inherit;
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #F8FAFC;
     }
     .kpi-subtext {
         font-size: 0.75rem;
-        color: #64748B;
+        color: #94A3B8;
         margin-top: 4px;
     }
     
@@ -98,7 +123,7 @@ st.markdown("""
         background: rgba(16, 185, 129, 0.12);
         border: 1px solid rgba(16, 185, 129, 0.35);
         color: #10B981;
-        padding: 8px 16px;
+        padding: 10px 18px;
         border-radius: 8px;
         font-weight: 800;
         font-size: 1.05rem;
@@ -109,7 +134,7 @@ st.markdown("""
         background: rgba(245, 158, 11, 0.12);
         border: 1px solid rgba(245, 158, 11, 0.35);
         color: #F59E0B;
-        padding: 8px 16px;
+        padding: 10px 18px;
         border-radius: 8px;
         font-weight: 800;
         font-size: 1.05rem;
@@ -120,7 +145,7 @@ st.markdown("""
         background: rgba(239, 68, 68, 0.12);
         border: 1px solid rgba(239, 68, 68, 0.35);
         color: #EF4444;
-        padding: 8px 16px;
+        padding: 10px 18px;
         border-radius: 8px;
         font-weight: 800;
         font-size: 1.05rem;
@@ -130,15 +155,53 @@ st.markdown("""
     
     /* Clean Protocol Card */
     .protocol-card {
-        background: rgba(148, 163, 184, 0.08);
-        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-left: 4px solid #3B82F6;
         border-radius: 8px;
         padding: 14px 18px;
         margin-top: 12px;
         font-size: 0.88rem;
         line-height: 1.5;
-        color: inherit;
+        color: #E2E8F0;
+    }
+    
+    /* Streamlit Tabs Styling */
+    div[data-testid="stTabs"] button {
+        color: #94A3B8 !important;
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        border-radius: 6px !important;
+        padding: 8px 16px !important;
+        transition: all 0.2s ease !important;
+    }
+    div[data-testid="stTabs"] button[aria-selected="true"] {
+        color: #F8FAFC !important;
+        background: rgba(59, 130, 246, 0.12) !important;
+        border-bottom: 2px solid #3B82F6 !important;
+    }
+    
+    /* Buttons */
+    div.stButton > button {
+        background-color: #1E293B !important;
+        color: #F8FAFC !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+    }
+    div.stButton > button:hover {
+        background-color: #2563EB !important;
+        border-color: #3B82F6 !important;
+        color: #FFFFFF !important;
+        transform: translateY(-1px);
+    }
+    
+    /* Expander */
+    div[data-testid="stExpander"] {
+        background: rgba(17, 24, 39, 0.7) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 8px !important;
     }
     
     /* Code font */
@@ -231,7 +294,7 @@ st.markdown("""
                 <h1 style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2; color: inherit;">
                     Multimodal Road Safety & Damage Intelligence
                 </h1>
-                <div style="font-size: 0.82rem; color: #64748B; margin-top: 2px;">
+                <div style="font-size: 0.82rem; color: #94A3B8; margin-top: 2px;">
                     Department of AIML • Autonomous Pre-Crash Forecasting & Vehicle Damage Assessment
                 </div>
             </div>
