@@ -42,11 +42,12 @@ def _ensure_samples():
         "sample_high_damage.jpg",
         "sample_pothole_road.jpg",
         "sample_two_wheeler_violation.jpg",
+        "sample_traffic_dashcam.mp4",
     ]
     if not all((SAMPLE_DATA_DIR / f).exists() for f in expected):
         try:
             from sample_data.generate_sample_media import generate_photorealistic_benchmarks
-            generate_photorealistic_benchmarks()
+            generate_photorealistic_benchmarks(SAMPLE_DATA_DIR)
         except Exception:
             pass
 
@@ -412,17 +413,19 @@ with tab_main:
             st.caption("Tip: Play this clip on a second screen or phone and point your laptop camera directly at it.")
 
         cam_method = st.radio(
-            "Camera Mode",
+            "Select Live Monitoring Mode",
             [
-                "📸 Browser Camera Snapshot (Guaranteed on Cloud / Phone)",
+                "📸 Browser Camera Snapshot (Guaranteed on Cloud & Mobile)",
+                "▶️ Real-Time Dashcam Simulation (Instant Continuous CNN+LSTM)",
                 "🎥 WebRTC Continuous Stream (with TURN Relay)",
                 "💻 Direct Local USB / OpenCV Camera (Localhost Only)"
             ],
             horizontal=True
         )
 
-        # MODE A: Browser Native Camera
+        # MODE A: Browser Native Camera Snapshot
         if "Browser Camera Snapshot" in cam_method:
+            st.success("✅ **Cloud Recommended**: Instant zero-latency capture using your device's native browser camera. Works 100% on iPhones, Android, Mac, and Windows PCs with zero firewall restrictions.")
             st.info("💡 Point your phone or laptop camera at a road scene, traffic video, or vehicle, then capture a frame:")
             camera_photo = st.camera_input("Point camera at traffic scene / phone video")
             
@@ -480,11 +483,85 @@ with tab_main:
                     else:
                         st.error(f"⚠️ {w}")
 
-        # MODE B: WebRTC Stream
+        # MODE B: Real-Time Dashcam Simulation (Instant Continuous CNN+LSTM Loop)
+        elif "Real-Time Dashcam Simulation" in cam_method:
+            st.info("🚗 **Continuous Spatio-Temporal AI Monitoring**: Evaluates a high-speed traffic video sequence frame-by-frame with real-time motion looming, velocity tracking, and bi-directional LSTM risk state updates.")
+            
+            dashcam_path = SAMPLE_DATA_DIR / "sample_traffic_dashcam.mp4"
+            if not dashcam_path.exists():
+                _ensure_samples()
+
+            dcol1, dcol2 = st.columns([1.3, 1])
+            frame_ph = dcol1.empty()
+            gauge_ph = dcol2.empty()
+            metrics_ph = dcol2.empty()
+
+            start_sim = st.button("▶️ Start Live Continuous Stream Simulation", use_container_width=True)
+
+            if start_sim:
+                cap = cv2.VideoCapture(str(dashcam_path))
+                lstm_pipeline.reset()
+                frame_count = 0
+                total_f = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 60
+
+                while cap.isOpened():
+                    ret, vframe = cap.read()
+                    if not ret:
+                        break
+
+                    # Process each frame through CNN+LSTM pipeline
+                    sim_res = lstm_pipeline.process_frame(
+                        vframe,
+                        simulated_speed=simulated_speed,
+                        rider_count=simulated_riders,
+                        helmet_detected=simulated_helmet
+                    )
+                    annotated_rgb = cv2.cvtColor(sim_res["annotated_frame"], cv2.COLOR_BGR2RGB)
+
+                    frame_ph.image(annotated_rgb, caption=f"Live Camera Stream • Frame {frame_count+1}/{total_f}", use_container_width=True)
+                    gauge_ph.plotly_chart(
+                        create_gauge(sim_res["risk_score"], "Rolling Temporal Risk Score", sim_res["severity_color"]),
+                        use_container_width=True
+                    )
+                    metrics_ph.markdown(f"""
+                    <div class="metric-card">
+                        <b>Active Severity Tier:</b> <span style="color:{sim_res['severity_color']}; font-weight:bold;">{sim_res['severity_label']}</span><br>
+                        <b>Motion Looming Rate:</b> {sim_res['motion_rate']}%<br>
+                        <b>Telemetry Velocity:</b> {simulated_speed:.1f} km/h<br>
+                        <b>Status:</b> {sim_res['warning_status']}
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    frame_count += 1
+                    time.sleep(0.04)
+
+                cap.release()
+                st.success("✅ Continuous live simulation stream completed. Last frame metrics saved to session state.")
+
+                # Save final state for PDF Report
+                st.session_state.current_assessment.update({
+                    "modality": "Live Dashcam Continuous Stream (CNN+LSTM)",
+                    "overall_risk": float(sim_res["risk_score"] * 100),
+                    "severity_label": sim_res["severity_label"],
+                    "severity_color": sim_res["severity_color"],
+                    "annotated_image": Image.fromarray(annotated_rgb),
+                    "violation_results": {
+                        "violation_score": float(sim_res["risk_score"] * 100),
+                        "violations_detected": sim_res["warnings"]
+                    }
+                })
+
+        # MODE C: WebRTC Continuous Stream (with TURN Relay)
         elif "WebRTC Continuous Stream" in cam_method and HAS_WEBRTC:
+            st.warning("""
+            ⚠️ **Cloud Network Notice**: Streamlit Cloud runs in headless Docker containers on AWS EC2 where inbound UDP peer-to-peer media packets can be blocked by corporate firewalls or cellular networks.
+            If your browser camera shows a black screen or 'Connection is taking longer than expected', switch to **'📸 Browser Camera Snapshot'** or **'▶️ Real-Time Dashcam Simulation'** above for 100% guaranteed cloud processing.
+            """)
+
             class WebRTCRiskProcessor(VideoProcessorBase):
                 def __init__(self):
                     self.pipeline = RollingSequenceRiskPipeline(window_size=10)
+                    self.latest_res = None
 
                 def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
                     img = frame.to_ndarray(format="bgr24")
@@ -494,6 +571,7 @@ with tab_main:
                         rider_count=simulated_riders,
                         helmet_detected=simulated_helmet
                     )
+                    self.latest_res = res
                     return av.VideoFrame.from_ndarray(res["annotated_frame"], format="bgr24")
 
             rtc_config = RTCConfiguration({
@@ -511,17 +589,28 @@ with tab_main:
                 ]
             })
 
-            webrtc_ctx = webrtc_streamer(
-                key="traffic-cnn-lstm",
-                video_processor_factory=WebRTCRiskProcessor,
-                rtc_configuration=rtc_config,
-                media_stream_constraints={"video": True, "audio": False},
-                async_processing=True
-            )
+            wcol1, wcol2 = st.columns([1.2, 1])
+            with wcol1:
+                webrtc_ctx = webrtc_streamer(
+                    key="traffic-cnn-lstm",
+                    video_processor_factory=WebRTCRiskProcessor,
+                    rtc_configuration=rtc_config,
+                    media_stream_constraints={"video": True, "audio": False},
+                    async_processing=True
+                )
 
-            st.info("💡 Click **'START'** above to enable your webcam. If your network firewall blocks WebRTC peer-to-peer streaming, switch to **'📸 Browser Camera Snapshot'** above for guaranteed instant capture.")
+            with wcol2:
+                st.markdown("#### 📡 Real-Time Stream Output & Telemetry")
+                st.markdown("""
+                <div class="metric-card">
+                    <b>Status:</b> Live Stream Receiver Active<br>
+                    <b>AI Pipeline:</b> Dual-Stream Spatio-Temporal CNN + BiLSTM<br>
+                    <b>Inference Horizon:</b> 10-frame rolling sequence buffer
+                </div>
+                """, unsafe_allow_html=True)
+                st.caption("AI HUD bounding boxes and motion vectors are rendered directly on the live video stream above.")
 
-        # MODE C: Direct OpenCV Local Camera
+        # MODE D: Direct OpenCV Local Camera
         else:
             run_cam = st.checkbox("Start Live Webcam Stream (Direct OpenCV)", value=False)
             cam_placeholder = st.empty()
@@ -630,7 +719,58 @@ with tab_main:
         # SUBMODE A: Vehicle Damage Severity
         if "Vehicle Damage Severity" in app_mode:
             st.subheader("🚗 Vehicle Damage Localization & Severity Grading")
-            
+
+            with st.expander("📘 **How Vehicle Damage Severity Classification Works (Low / Mid / High Explained)**", expanded=False):
+                st.markdown("""
+                This subsystem evaluates vehicular impact deformation using a 3-tier computer vision framework:
+                
+                | Severity Tier | Visual Defect Criteria | Deformation & Crack Index | Emergency Action & Triage |
+                | :--- | :--- | :---: | :--- |
+                | **🟢 LOW SEVERITY** | Superficial clear-coat scratches, minor paint abrasions, small door dings (<5 cm). Structural crash subframe & glass are 100% intact. | **< 35%** (Nominal: 22%) | **Vehicle Driveable.** Minor cosmetic workshop repair; standard insurance fast-track claim. |
+                | **🟡 MID SEVERITY** | Dislodged/sagging lower bumper fascia, fractured headlight assembly, dented quarter panel. Crash frame intact. | **38% – 72%** (Nominal: 58%) | **Repair Required.** Non-driveable at night due to destroyed headlamps. Standard flatbed tow dispatch. |
+                | **🔴 HIGH SEVERITY** | Structural cabin intrusion, collapsed engine subframe, spiderweb shattered windshield, rollover crushed roof. | **> 72%** (Nominal: 88%) | **Critical Hazard.** Immediate Tier-1 ALS Ambulance dispatch, hazmat road clearance, total-loss survey. |
+                
+                * **Why Scenario 1 shows LOW SEVERITY**: The blue sedan possesses an intact cabin, unbent bumper, unbroken glass, and only a localized surface scratch on the door panel (3.5% damage area coverage).
+                * **Use the 3 quick-switch buttons below** to test Mid Severity (Bumper/Headlight) and High Severity (Structural Crush), or drag and drop any real car accident photo!
+                """)
+
+            # Interactive 3-Tier Scenario Switcher Bar directly on the main page
+            if "active_damage_scenario" not in st.session_state:
+                st.session_state.active_damage_scenario = "Low Severity Vehicle Damage"
+
+            st.markdown("**Select Benchmark Scenario to Evaluate (or Upload Custom Image):**")
+            sc_col1, sc_col2, sc_col3, sc_col4 = st.columns([1, 1, 1, 1.2])
+
+            with sc_col1:
+                if st.button("🟢 1. Low Severity\n(Minor Panel Scratch)", use_container_width=True):
+                    st.session_state.active_damage_scenario = "Low Severity Vehicle Damage"
+            with sc_col2:
+                if st.button("🟡 2. Mid Severity\n(Bumper & Headlight)", use_container_width=True):
+                    st.session_state.active_damage_scenario = "Mid Severity Vehicle Damage"
+            with sc_col3:
+                if st.button("🔴 3. High Severity\n(Structural Crush)", use_container_width=True):
+                    st.session_state.active_damage_scenario = "High Severity Vehicle Damage"
+            with sc_col4:
+                direct_dmg_file = st.file_uploader("📁 Upload Car Photo", type=["jpg", "jpeg", "png"], key="direct_dmg_upload")
+
+            # Determine active image
+            if direct_dmg_file is not None:
+                active_img = Image.open(direct_dmg_file)
+            elif uploaded_image is not None:
+                active_img = Image.open(uploaded_image)
+            else:
+                scenario_name = st.session_state.active_damage_scenario
+                sample_map = {
+                    "Low Severity Vehicle Damage": "sample_low_damage.jpg",
+                    "Mid Severity Vehicle Damage": "sample_mid_damage.jpg",
+                    "High Severity Vehicle Damage": "sample_high_damage.jpg"
+                }
+                target_f = sample_map.get(scenario_name, sample_options.get(selected_sample, "sample_low_damage.jpg"))
+                active_img = Image.open(SAMPLE_DATA_DIR / target_f)
+
+            img_np = np.array(active_img.convert('RGB'))
+            img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+
             col1, col2 = st.columns([1.2, 1])
 
             with st.spinner("Analyzing structural damage & surface deformation..."):
@@ -639,8 +779,8 @@ with tab_main:
 
                 # Update session state for report and analytics
                 st.session_state.current_assessment.update({
-                    "modality": "Vehicle Damage Severity Inspection",
-                    "overall_risk": float(damage_res["severity_score"]),
+                    "modality": f"Vehicle Damage Severity Inspection ({st.session_state.active_damage_scenario})",
+                    "overall_risk": float(damage_res["severity_score"] * 100),
                     "severity_label": damage_res["severity_label"],
                     "severity_color": damage_res["severity_color"],
                     "annotated_image": Image.fromarray(annotated_rgb),

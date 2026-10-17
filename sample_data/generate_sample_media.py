@@ -81,13 +81,13 @@ def generate_samples(output_dir: Path):
         cv2.circle(img1, (cx, 418), 24, (180, 185, 190), -1)
         cv2.circle(img1, (cx, 418), 10, (50, 50, 55), -1)
 
-    # Minor Scratch: Fine jagged white/silver line on rear panel
-    scratch_pts = np.array([[220, 360], [245, 362], [270, 358], [295, 364]], np.int32)
+    # Minor Scratch: Fine jagged white/silver line on door panel
+    scratch_pts = np.array([[225, 360], [250, 363], [275, 357], [305, 362]], np.int32)
     cv2.polylines(img1, [scratch_pts], False, (255, 255, 255), 2)
-    cv2.polylines(img1, [scratch_pts + np.array([0, 1])], False, (80, 40, 15), 1) # Shadow edge
+    cv2.polylines(img1, [scratch_pts + np.array([0, 1])], False, (70, 35, 15), 1)
 
-    cv2.putText(img1, "BENCHMARK SAMPLE: MINOR REAR-PANEL SCRATCH (LOW SEVERITY)", (25, 38),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.60, (255, 255, 255), 2)
+    cv2.putText(img1, "BENCHMARK SAMPLE: MINOR CLEAR-COAT PANEL SCRATCH (LOW SEVERITY)", (25, 38),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255, 255, 255), 2)
     cv2.imwrite(str(output_dir / "sample_low_damage.jpg"), img1)
 
     # =========================================================================
@@ -214,11 +214,37 @@ def generate_samples(output_dir: Path):
         cv2.circle(img5, (hx, hy), 22, (60, 110, 185), -1) # Skin tone (BGR)
         cv2.ellipse(img5, (hx, hy - 8), (22, 14), 0, 180, 360, (20, 20, 25), -1) # Dark hair
 
-    cv2.putText(img5, "BENCHMARK SAMPLE: TWO-WHEELER TRIPLE RIDING (NO HELMETS)", (25, 38),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255, 255, 255), 2)
-    cv2.imwrite(str(output_dir / "sample_two_wheeler_violation.jpg"), img5)
+    # =========================================================================
+    # 6. VIDEO STREAM BENCHMARK: Highway Traffic Dashcam Looming Sequence
+    # =========================================================================
+    vid_path = str(output_dir / "sample_traffic_dashcam.mp4")
+    try:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        vw, vh = 640, 360
+        out_vid = cv2.VideoWriter(vid_path, fourcc, 20.0, (vw, vh))
+        for f in range(60):
+            vframe = np.full((vh, vw, 3), (185, 195, 205), dtype=np.uint8)
+            # Road
+            cv2.fillPoly(vframe, [np.array([[0, vh], [240, 150], [400, 150], [vw, vh]])], (52, 54, 58))
+            # Perspective lane lines
+            y1 = int(160 + f * 3) % 190 + 150
+            cv2.line(vframe, (vw // 2, y1), (vw // 2, min(vh, y1 + 35)), (240, 240, 240), 3)
+            # Looming car ahead
+            car_w = int(45 + f * 1.8)
+            car_h = int(28 + f * 1.1)
+            cx = vw // 2 + int(np.sin(f * 0.12) * 22)
+            cy = int(175 + f * 2.1)
+            cv2.rectangle(vframe, (cx - car_w // 2, cy - car_h // 2), (cx + car_w // 2, cy + car_h // 2), (180, 45, 45), -1)
+            cv2.rectangle(vframe, (cx - car_w // 3, cy - car_h // 2 - 12), (cx + car_w // 3, cy - car_h // 2), (120, 145, 165), -1)
+            cv2.putText(vframe, f"DASHCAM STREAM | FRAME {f:02d}/60", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2)
+            out_vid.write(vframe)
+        out_vid.release()
+    except Exception as e:
+        print("Warning: could not write mp4:", e)
 
     print(f"Photorealistic benchmark media successfully generated in {output_dir}")
+
+generate_photorealistic_benchmarks = generate_samples
 
 if __name__ == "__main__":
     generate_samples(Path(__file__).resolve().parent)
