@@ -206,35 +206,42 @@ if "current_assessment" not in st.session_state:
         "notes": "Standard initial session state. Run any benchmark, uploaded media, or live camera to refresh."
     }
 
-# ── Top Institutional Header with Logo ─────────────────────────────────────────
-logo_path = BASE_DIR / "assets" / "college_logo.png"
-
-col_head_logo, col_head_text = st.columns([0.8, 8.2])
-with col_head_logo:
-    if logo_path.exists():
-        st.image(str(logo_path), width=85)
-    else:
-        st.markdown("<div style='font-size: 3rem;'>🏛️</div>", unsafe_allow_html=True)
-
-with col_head_text:
-    st.markdown("""
-    <div class="inst-header">
-        <div class="inst-title">PANIMALAR ENGINEERING COLLEGE</div>
-        <div class="inst-subtitle">An Autonomous Institution, Affiliated to Anna University, Chennai • Department of Artificial Intelligence & Machine Learning</div>
-        <div class="inst-meta">
-            <b>Project Review (Batch D16):</b> Multimodal Accident Prevention & Vehicle Damage Severity Assessment AI System<br>
-            <b>Student Investigators:</b> HARISH AT & BARATHRAJ AS &nbsp;|&nbsp; <b>Project Supervisor:</b> Dr. A. ARUN, Associate Professor / AIML
+# ── Top Presentation Header ───────────────────────────────────────────────────
+st.markdown("""
+<div style="margin-bottom: 16px;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div>
+            <h1 style="font-size: 2.15rem; font-weight: 800; letter-spacing: -0.025em; margin: 0; padding: 0;">
+                🛡️ Multimodal Road Accident Prevention & Severity AI
+            </h1>
+            <p style="font-size: 0.95rem; color: #64748B; margin-top: 5px; margin-bottom: 0px;">
+                Autonomous Pre-Crash Risk Forecasting, Spatio-Temporal Motion Tracking & Vehicle Damage Severity Assessment
+            </p>
+        </div>
+        <div>
+            <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); color: #3B82F6; padding: 4px 12px; border-radius: 12px; font-size: 0.80rem; font-weight: 700; letter-spacing: 0.04em;">
+                PROJECT SHOWCASE • AIML
+            </span>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
-# ── System Telemetry Ribbon ───────────────────────────────────────────────────
+# ── System Telemetry Ribbon (Theme Adaptive) ──────────────────────────────────
 st.markdown("""
-<div class="telemetry-ribbon">
-    <div class="telemetry-pill pill-green"><span style="color:#10B981;">●</span> Core AI Engine: ResNet50 + YOLOv8 + Spatio-Temporal BiLSTM</div>
-    <div class="telemetry-pill pill-blue">⚡ Mean Latency: ~24.2 ms / frame</div>
-    <div class="telemetry-pill pill-purple">🌐 Cloud Cluster Node: Active (Headless Edge Profile)</div>
-    <div class="telemetry-pill">🎯 Calibration: Uncapped Probabilistic Fusion Engine</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+    <div style="background: rgba(16, 185, 129, 0.10); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 20px; padding: 4px 12px; font-size: 0.80rem; font-weight: 600; color: #10B981;">
+        ● Core Engine: ResNet-50 + YOLOv8 + BiLSTM
+    </div>
+    <div style="background: rgba(59, 130, 246, 0.10); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 20px; padding: 4px 12px; font-size: 0.80rem; font-weight: 600; color: #3B82F6;">
+        ⚡ Latency: ~24.2 ms / frame
+    </div>
+    <div style="background: rgba(139, 92, 246, 0.10); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: 20px; padding: 4px 12px; font-size: 0.80rem; font-weight: 600; color: #8B5CF6;">
+        🌐 Cloud Cluster: Node-AWS-01 Active
+    </div>
+    <div style="background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 20px; padding: 4px 12px; font-size: 0.80rem; font-weight: 600; color: #F59E0B;">
+        🎯 Calibration: Dynamic Multimodal Risk Fusion
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -519,16 +526,37 @@ with tab_main:
                     annotated_rgb = cv2.cvtColor(sim_res["annotated_frame"], cv2.COLOR_BGR2RGB)
 
                     frame_ph.image(annotated_rgb, caption=f"Live Camera Stream • Frame {frame_count+1}/{total_f}", use_container_width=True)
-                    gauge_ph.plotly_chart(
-                        create_gauge(sim_res["risk_score"], "Rolling Temporal Risk Score", sim_res["severity_color"]),
-                        use_container_width=True
-                    )
+                    risk_pct = float(sim_res["risk_score"] * 100)
                     metrics_ph.markdown(f"""
-                    <div class="metric-card">
-                        <b>Active Severity Tier:</b> <span style="color:{sim_res['severity_color']}; font-weight:bold;">{sim_res['severity_label']}</span><br>
-                        <b>Motion Looming Rate:</b> {sim_res['motion_rate']}%<br>
-                        <b>Telemetry Velocity:</b> {simulated_speed:.1f} km/h<br>
-                        <b>Status:</b> {sim_res['warning_status']}
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em;">Rolling Risk Score</span>
+                            <span style="font-size: 1.45rem; font-weight: 800; color: {sim_res['severity_color']};">{risk_pct:.1f}%</span>
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.08); border-radius: 8px; height: 12px; overflow: hidden; margin-bottom: 14px;">
+                            <div style="width: {min(max(risk_pct, 4.0), 100.0)}%; background: {sim_res['severity_color']}; height: 100%; border-radius: 8px;"></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.88rem; margin-bottom: 10px;">
+                            <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px;">
+                                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600;">SEVERITY TIER</div>
+                                <div style="color: {sim_res['severity_color']}; font-weight: 800; font-size: 0.95rem;">{sim_res['severity_label']}</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px;">
+                                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600;">LOOMING RATE</div>
+                                <div style="font-weight: 800; font-size: 0.95rem;">{sim_res['motion_rate']}%</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px;">
+                                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600;">TELEMETRY SPEED</div>
+                                <div style="font-weight: 800; font-size: 0.95rem;">{simulated_speed:.1f} km/h</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px;">
+                                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600;">STREAM FRAME</div>
+                                <div style="font-weight: 800; font-size: 0.95rem;">{frame_count+1} / {total_f}</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;">
+                            <b>System Status:</b> <span style="color: {sim_res['severity_color']}; font-weight: 600;">{sim_res['warning_status']}</span>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -537,6 +565,13 @@ with tab_main:
 
                 cap.release()
                 st.success("✅ Continuous live simulation stream completed. Last frame metrics saved to session state.")
+
+                # Render final Plotly interactive gauge once with unique key
+                gauge_ph.plotly_chart(
+                    create_gauge(sim_res["risk_score"], "Final Session Temporal Risk Score", sim_res["severity_color"]),
+                    use_container_width=True,
+                    key=f"final_sim_gauge_{int(time.time())}"
+                )
 
                 # Save final state for PDF Report
                 st.session_state.current_assessment.update({
@@ -691,17 +726,30 @@ with tab_main:
                     annotated_rgb = cv2.cvtColor(res["annotated_frame"], cv2.COLOR_BGR2RGB)
                     frame_display.image(annotated_rgb, use_container_width=True)
 
-                    gauge_display.plotly_chart(
-                        create_gauge(res["risk_score"], "Rolling Temporal Risk Score", res["severity_color"]),
-                        use_container_width=True
-                    )
-
+                    risk_pct = float(res["risk_score"] * 100)
                     info_display.markdown(f"""
-                    <div class="metric-card">
-                        <b>Frame:</b> {frame_idx} / {total_frames}<br>
-                        <b>Severity Tier:</b> <span style="color:{res['severity_color']}; font-weight:bold;">{res['severity_label']}</span><br>
-                        <b>Status:</b> {res['warning_status']}<br>
-                        <b>Active Warnings:</b> {', '.join(res['warnings'])}
+                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em;">Rolling Risk Score</span>
+                            <span style="font-size: 1.45rem; font-weight: 800; color: {res['severity_color']};">{risk_pct:.1f}%</span>
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.08); border-radius: 8px; height: 12px; overflow: hidden; margin-bottom: 14px;">
+                            <div style="width: {min(max(risk_pct, 4.0), 100.0)}%; background: {res['severity_color']}; height: 100%; border-radius: 8px;"></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.88rem; margin-bottom: 10px;">
+                            <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px;">
+                                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600;">FRAME</div>
+                                <div style="font-weight: 800; font-size: 0.95rem;">{frame_idx} / {total_frames}</div>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.04); padding: 8px 10px; border-radius: 6px;">
+                                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600;">SEVERITY TIER</div>
+                                <div style="color: {res['severity_color']}; font-weight: 800; font-size: 0.95rem;">{res['severity_label']}</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;">
+                            <b>Status:</b> {res['warning_status']}<br>
+                            <b>Active Warnings:</b> {', '.join(res['warnings']) if res['warnings'] else 'None (Path Clear)'}
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
 
@@ -709,7 +757,12 @@ with tab_main:
                 time.sleep(0.01)
 
             cap.release()
-            st.success("Video sequence processing completed.")
+            st.success("✅ Video sequence processing completed.")
+            gauge_display.plotly_chart(
+                create_gauge(res["risk_score"], "Final Sequence Temporal Risk Score", res["severity_color"]),
+                use_container_width=True,
+                key=f"final_video_gauge_{int(time.time())}"
+            )
 
     # ── CASE 3: STATIC IMAGE & BENCHMARK EVALUATION ────────────────────────────
     elif raw_image is not None:
