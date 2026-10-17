@@ -51,3 +51,13 @@ class TestHazardDetector:
             res = detector.scan_road_hazards(img)
             assert res is not None
             assert "hazard_risk_score" in res
+
+    def test_dynamic_depth_scaling(self, detector):
+        pothole_path = SAMPLE_DATA_DIR / "sample_pothole_road.jpg"
+        if pothole_path.exists():
+            img = cv2.imread(str(pothole_path))
+            res_shallow = detector.scan_road_hazards(img, simulated_depth_cm=2.0)
+            res_deep = detector.scan_road_hazards(img, simulated_depth_cm=22.0)
+            assert res_deep["hazard_risk_score"] > res_shallow["hazard_risk_score"]
+            assert res_deep["hazards_detected"][0]["severity"] == "HIGH"
+            assert res_shallow["hazards_detected"][0]["severity"] == "LOW"

@@ -92,3 +92,38 @@ class TestViolationDetector:
         res_none = detector.analyze_frame(frame, None)
         assert res_none is not None
         assert "risk_score" in res_none
+
+    def test_independent_driver_and_pillion_helmet(self, detector):
+        frame = np.zeros((480, 640, 3), dtype=np.uint8)
+
+        # Case 1: Driver has helmet, pillion does NOT
+        t1 = {
+            "speed_kmh": 40.0,
+            "rider_count": 2,
+            "driver_helmet": True,
+            "pillion_helmet": False
+        }
+        res1 = detector.analyze_frame(frame, t1)
+        assert any("Pillion Passenger" in v for v in res1["violations"])
+        assert not any("Driver/Front Rider Riding Without Helmet" in v for v in res1["violations"])
+
+        # Case 2: Driver does NOT have helmet, pillion HAS helmet
+        t2 = {
+            "speed_kmh": 40.0,
+            "rider_count": 2,
+            "driver_helmet": False,
+            "pillion_helmet": True
+        }
+        res2 = detector.analyze_frame(frame, t2)
+        assert any("Driver/Front Rider Riding Without Helmet" in v for v in res2["violations"])
+        assert not any("Pillion Passenger" in v for v in res2["violations"])
+
+        # Case 3: Both have helmets
+        t3 = {
+            "speed_kmh": 40.0,
+            "rider_count": 2,
+            "driver_helmet": True,
+            "pillion_helmet": True
+        }
+        res3 = detector.analyze_frame(frame, t3)
+        assert len(res3["violations"]) == 0

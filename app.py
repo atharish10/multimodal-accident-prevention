@@ -529,8 +529,32 @@ if "current_assessment" not in st.session_state:
         "notes": "Multimodal decision-support system active."
     }
 
+if "assessment_damage" not in st.session_state:
+    st.session_state.assessment_damage = None
+if "assessment_video" not in st.session_state:
+    st.session_state.assessment_video = None
+if "assessment_hazard" not in st.session_state:
+    st.session_state.assessment_hazard = None
+if "assessment_violation" not in st.session_state:
+    st.session_state.assessment_violation = None
+if "assessment_fusion" not in st.session_state:
+    st.session_state.assessment_fusion = None
+
+if "video_sim_history" not in st.session_state:
+    st.session_state.video_sim_history = None
+if "video_frame_indices" not in st.session_state:
+    st.session_state.video_frame_indices = None
+if "video_last_frame" not in st.session_state:
+    st.session_state.video_last_frame = None
+if "video_last_res" not in st.session_state:
+    st.session_state.video_last_res = None
+if "video_aeb_count" not in st.session_state:
+    st.session_state.video_aeb_count = 0
+
 if "active_damage_scenario" not in st.session_state:
     st.session_state.active_damage_scenario = "Low Severity (Minor Panel Scratch)"
+if "damage_input_source" not in st.session_state:
+    st.session_state.damage_input_source = "benchmark"
 
 # ── HELPER: DARK-THEME COMPATIBLE GAUGE CHART ─────────────────────────────────
 def create_gauge(score: float, title: str, color: str, is_percentage: bool = True):
@@ -705,23 +729,43 @@ with tab_damage:
     st.markdown("**Select Benchmark Scenario to Evaluate (or Upload Custom Image):**")
     sc1, sc2, sc3, sc4 = st.columns([1, 1, 1, 1.2])
     with sc1:
-        if st.button("1. Low Severity\n(Minor Panel Scratch)", use_container_width=True):
+        is_low = (st.session_state.active_damage_scenario == "Low Severity (Minor Panel Scratch)" and st.session_state.damage_input_source == "benchmark")
+        if st.button("1. Low Severity\n(Minor Panel Scratch)", use_container_width=True, type="primary" if is_low else "secondary"):
             st.session_state.active_damage_scenario = "Low Severity (Minor Panel Scratch)"
+            st.session_state.damage_input_source = "benchmark"
+            st.session_state.airbag_tab1 = False
+            st.session_state.subframe_tab1 = False
+            st.rerun()
     with sc2:
-        if st.button("2. Moderate Severity\n(Impact & Bumper Fracture)", use_container_width=True):
+        is_mid = ("Moderate" in st.session_state.active_damage_scenario and st.session_state.damage_input_source == "benchmark")
+        if st.button("2. Moderate Severity\n(Impact & Bumper Fracture)", use_container_width=True, type="primary" if is_mid else "secondary"):
             st.session_state.active_damage_scenario = "Moderate Severity (Impact & Bumper Fracture)"
+            st.session_state.damage_input_source = "benchmark"
+            st.session_state.airbag_tab1 = False
+            st.session_state.subframe_tab1 = False
+            st.rerun()
     with sc3:
-        if st.button("3. High Severity\n(Structural Cabin Crush)", use_container_width=True):
+        is_high = ("High" in st.session_state.active_damage_scenario and st.session_state.damage_input_source == "benchmark")
+        if st.button("3. High Severity\n(Structural Cabin Crush)", use_container_width=True, type="primary" if is_high else "secondary"):
             st.session_state.active_damage_scenario = "High Severity (Structural Cabin Crush)"
+            st.session_state.damage_input_source = "benchmark"
+            st.session_state.airbag_tab1 = True
+            st.session_state.subframe_tab1 = True
+            st.rerun()
     with sc4:
         custom_car_upload = st.file_uploader("Upload Car Photograph", type=["jpg", "jpeg", "png"], key="car_upload_tab1")
+        if custom_car_upload is not None:
+            if st.session_state.get("_last_car_file") != custom_car_upload.name:
+                st.session_state.damage_input_source = "upload"
+                st.session_state._last_car_file = custom_car_upload.name
 
     # Load Active Image
     scenario = st.session_state.active_damage_scenario
-    if custom_car_upload is not None:
+    if st.session_state.damage_input_source == "upload" and custom_car_upload is not None:
         raw_car_img = Image.open(custom_car_upload)
         scenario_hint = None
     else:
+        st.session_state.damage_input_source = "benchmark"
         scenario_hint = scenario
         if "Low" in scenario:
             raw_car_img = Image.open(SAMPLE_DATA_DIR / "sample_low_damage.jpg")
@@ -753,14 +797,19 @@ with tab_damage:
                 key="deductible_tab1"
             )
         with fc_c2:
+            default_airbag = ("High" in scenario or "Structural" in scenario)
+            if "airbag_tab1" not in st.session_state:
+                st.session_state.airbag_tab1 = default_airbag
             airbag_deployed = st.checkbox(
                 "SRS Airbag Modules Deployed (Steering/Curtain)",
-                value=("High" in scenario or "Structural" in scenario),
                 key="airbag_tab1"
             )
+
+            default_subframe = ("High" in scenario or "Structural" in scenario)
+            if "subframe_tab1" not in st.session_state:
+                st.session_state.subframe_tab1 = default_subframe
             subframe_distorted = st.checkbox(
                 "Structural Subframe Twisted / Frame Rail Pull Required",
-                value=("High" in scenario or "Structural" in scenario),
                 key="subframe_tab1"
             )
             oem_parts_pref = st.checkbox("OEM Authorized Parts (vs Aftermarket Equivalent)", value=True, key="oem_pref_tab1")
@@ -821,14 +870,16 @@ with tab_damage:
             "repair_cycle_days": est_days
         }
 
-        st.session_state.current_assessment.update({
+        damage_payload = {
             "modality": f"Vehicle Damage Severity ({damage_res['severity_level']})",
             "overall_risk": float(damage_res["severity_score"] * 100),
             "severity_label": damage_res["severity_label"],
             "severity_color": damage_res["severity_color"],
             "annotated_image": Image.fromarray(annotated_car_rgb),
             "damage_results": damage_res
-        })
+        }
+        st.session_state.assessment_damage = damage_payload
+        st.session_state.current_assessment.update(damage_payload)
 
     col_img, col_metrics = st.columns([1.25, 1])
     with col_img:
@@ -1104,6 +1155,29 @@ with tab_video:
             cap.release()
             st.success("Continuous dashcam stream completed successfully.")
 
+            st.session_state.video_sim_history = risk_history
+            st.session_state.video_frame_indices = frame_indices
+            st.session_state.video_aeb_count = aeb_engaged_count
+            st.session_state.video_last_frame = annotated_rgb
+            st.session_state.video_last_res = sim_res
+
+            video_payload = {
+                "modality": "Dashcam Video Collision Forecasting (BiLSTM)",
+                "overall_risk": float(sim_res["risk_score"] * 100),
+                "severity_label": sim_res["severity_label"],
+                "severity_color": sim_res["severity_color"],
+                "annotated_image": Image.fromarray(annotated_rgb),
+                "video_results": {
+                    "risk_score": sim_res["risk_score"],
+                    "motion_rate": sim_res["motion_rate"],
+                    "aeb_engaged_count": aeb_engaged_count,
+                    "speed_kmh": video_speed,
+                    "headway_m": video_headway,
+                    "ttc_sec": ttc_sec_dash
+                }
+            }
+            st.session_state.assessment_video = video_payload
+
             gauge_ph.plotly_chart(
                 create_gauge(sim_res["risk_score"], "Final Session Risk Score", sim_res["severity_color"]),
                 use_container_width=True,
@@ -1139,6 +1213,102 @@ with tab_video:
                 margin=dict(l=20, r=20, t=35, b=20)
             )
             st.plotly_chart(fig_trajectory, use_container_width=True)
+
+        elif st.session_state.video_last_frame is not None:
+            # Display persisted state from previous simulation run
+            last_rgb = st.session_state.video_last_frame
+            last_res = st.session_state.video_last_res
+            r_hist = st.session_state.video_sim_history or []
+            f_idx = st.session_state.video_frame_indices or []
+            aeb_cnt = st.session_state.video_aeb_count or 0
+
+            frame_ph.image(last_rgb, caption="Last Processed Dashcam Frame (Persisted Session)", use_container_width=True)
+            gauge_ph.plotly_chart(
+                create_gauge(last_res["risk_score"], "Session Risk Score", last_res["severity_color"]),
+                use_container_width=True,
+                key="sim_persisted_gauge"
+            )
+            is_aeb = (float(last_res["risk_score"] * 100) * optical_flow_sens) >= aeb_threshold_pct
+            aeb_html = f"""
+            <div style="background: rgba(239, 68, 68, 0.18); border: 1px solid #EF4444; border-radius: 6px; padding: 6px 10px; margin-top: 8px; color: #FCA5A5; font-size: 0.74rem; font-weight: 700;">
+                🚨 AEB ACTIVE • Emergency Deceleration (-8.4 m/s²)
+            </div>
+            """ if is_aeb else f"""
+            <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 6px 10px; margin-top: 8px; color: #34D399; font-size: 0.74rem; font-weight: 600;">
+                🛡️ AEB Standby • Velocity Guard Primed
+            </div>
+            """
+            metrics_ph.markdown(f"""
+            <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+                    <span style="font-size: 0.80rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Rolling Temporal Risk</span>
+                    <span style="font-size: 1.4rem; font-weight: 800; color: {last_res['severity_color']};">{float(last_res['risk_score']*100):.1f}%</span>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.08); border-radius: 8px; height: 10px; overflow: hidden; margin-bottom: 14px;">
+                    <div style="width: {min(max(float(last_res['risk_score']*100), 4.0), 100.0)}%; background: {last_res['severity_color']}; height: 100%;"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; margin-bottom: 10px;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 6px;">
+                        <div style="color: #94A3B8; font-size: 0.70rem; font-weight: 600;">SEVERITY TIER</div>
+                        <div style="color: {last_res['severity_color']}; font-weight: 800;">{last_res['severity_label']}</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 6px;">
+                        <div style="color: #94A3B8; font-size: 0.70rem; font-weight: 600;">LOOMING RATE</div>
+                        <div style="font-weight: 800;">{last_res['motion_rate']}%</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 6px;">
+                        <div style="color: #94A3B8; font-size: 0.70rem; font-weight: 600;">DRIVING SPEED</div>
+                        <div style="font-weight: 800;">{video_speed:.0f} km/h</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 8px 10px; border-radius: 6px;">
+                        <div style="color: #94A3B8; font-size: 0.70rem; font-weight: 600;">HEADWAY (TTC)</div>
+                        <div style="font-weight: 800;">{video_headway:.0f}m ({ttc_sec_dash:.1f}s)</div>
+                    </div>
+                </div>
+                <div style="font-size: 0.82rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;">
+                    <b>Status:</b> <span style="color: {last_res['severity_color']}; font-weight: 600;">{last_res['warning_status']}</span>
+                </div>
+                {aeb_html}
+            </div>
+            """, unsafe_allow_html=True)
+
+            if r_hist and f_idx:
+                st.write("#### Spatio-Temporal Collision Trajectory History:")
+                fig_trajectory = go.Figure()
+                fig_trajectory.add_trace(go.Scatter(
+                    x=f_idx, y=r_hist, mode="lines", line=dict(color="#3B82F6", width=2.5), name="Rolling Risk Score"
+                ))
+                fig_trajectory.add_hline(
+                    y=aeb_threshold_pct, line_dash="dash", line_color="#EF4444",
+                    annotation_text=f"AEB Intervention Threshold ({aeb_threshold_pct:.0f}%)", annotation_position="bottom right"
+                )
+                fig_trajectory.update_layout(
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"color": "#94A3B8"},
+                    title=f"Temporal Collision Trajectory • {aeb_cnt} Frames with AEB Active",
+                    xaxis_title="Processed Frame Index", yaxis_title="Dynamic Risk Score (%)", yaxis=dict(range=[0, 105]),
+                    height=260, margin=dict(l=20, r=20, t=35, b=20)
+                )
+                st.plotly_chart(fig_trajectory, use_container_width=True)
+        else:
+            # Initial Preview Frame
+            cap_init = cv2.VideoCapture(str(dashcam_path))
+            ret_init, f_init = cap_init.read()
+            cap_init.release()
+            if ret_init and f_init is not None:
+                init_res = lstm_pipeline.process_frame(f_init, simulated_speed=video_speed)
+                init_rgb = cv2.cvtColor(init_res["annotated_frame"], cv2.COLOR_BGR2RGB)
+                frame_ph.image(init_rgb, caption="Highway Benchmark Video Preview • Ready to Stream", use_container_width=True)
+                gauge_ph.plotly_chart(create_gauge(init_res["risk_score"], "Initial Threat Level", init_res["severity_color"]), use_container_width=True, key="init_gauge_tab2")
+                metrics_ph.markdown(f"""
+                <div class="saas-card">
+                    <div style="font-weight: 700; color: #60A5FA; margin-bottom: 6px;">📹 BiLSTM Video Stream Standby</div>
+                    <div style="font-size: 0.80rem; color: #94A3B8; line-height: 1.5;">
+                        Current Speed: <b>{video_speed:.0f} km/h</b><br>
+                        Headway: <b>{video_headway:.0f}m ({ttc_sec_dash:.1f}s TTC)</b><br>
+                        Click <b>"Start Live Spatio-Temporal Pipeline"</b> below to run the real-time neural tracking pipeline.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
     # Option B: Upload Custom Dashcam Video
     elif "Upload Custom Dashcam" in stream_mode:
@@ -1296,7 +1466,7 @@ with tab_hazards:
     road_bgr = cv2.cvtColor(np.array(raw_road_img.convert("RGB")), cv2.COLOR_RGB2BGR)
 
     with st.spinner("Scanning road surface defects and cavity depressions..."):
-        haz_res = hazard_det.scan_road_hazards(road_bgr)
+        haz_res = hazard_det.scan_road_hazards(road_bgr, simulated_depth_cm=pothole_depth_cm)
         annotated_road_rgb = cv2.cvtColor(haz_res["annotated_frame"], cv2.COLOR_BGR2RGB)
 
         h_score = haz_res["hazard_risk_score"]
@@ -1321,7 +1491,7 @@ with tab_hazards:
         patch_tons = patch_volume_m3 * 2.4
         repair_sla = "< 24 Hours Emergency Hot-Mix Patch" if h_tier == "HIGH" else ("< 72 Hours Standard Cold-Mix Patch" if h_tier == "MODERATE" else "Routine Survey Audit")
 
-        st.session_state.current_assessment.update({
+        hazard_payload = {
             "modality": "Road Surface Hazard & Pothole Segmentation",
             "overall_risk": float(h_score * 100),
             "severity_label": f"{h_tier} Hazard Level",
@@ -1333,9 +1503,13 @@ with tab_hazards:
                 "hazards_detected": [f"{h['type'].upper()} ({h['severity']})" for h in haz_res.get("hazards_detected", [])],
                 "shock_load_g": g_shock,
                 "pothole_depth_cm": pothole_depth_cm,
-                "patch_tons": patch_tons
+                "patch_tons": patch_tons,
+                "repair_sla": repair_sla,
+                "pavement_state": haz_res.get("pavement_state", "Nominal")
             }
-        })
+        }
+        st.session_state.assessment_hazard = hazard_payload
+        st.session_state.current_assessment.update(hazard_payload)
 
     col_r1, col_r2 = st.columns([1.25, 1])
     with col_r1:
@@ -1455,7 +1629,9 @@ with tab_violations:
     telemetry = {
         "speed_kmh": bike_speed,
         "rider_count": bike_riders,
-        "helmet_detected": bike_helmet
+        "helmet_detected": bike_helmet,
+        "driver_helmet": bike_helmet,
+        "pillion_helmet": pillion_helmet
     }
 
     with st.spinner("Analyzing rider occupancy, helmet compliance, and velocity..."):
@@ -1508,7 +1684,7 @@ with tab_violations:
             ssi_tier = "CRITICAL INSTABILITY (SKID IMMINENT)"
             ssi_color = "#EF4444"
 
-        st.session_state.current_assessment.update({
+        violation_payload = {
             "modality": "Two-Wheeler Safety & Compliance",
             "overall_risk": float(v_score * 100),
             "severity_label": f"{v_tier} Violation Risk",
@@ -1519,9 +1695,12 @@ with tab_violations:
                 "violations_detected": viol_res["violations"],
                 "total_challan_fine": total_challan_fine,
                 "ssi_score": ssi_score,
-                "jurisdiction": enforcement_jurisdiction
+                "jurisdiction": enforcement_jurisdiction,
+                "speed_kmh": bike_speed
             }
-        })
+        }
+        st.session_state.assessment_violation = violation_payload
+        st.session_state.current_assessment.update(violation_payload)
 
     col_v1, col_v2 = st.columns([1.25, 1])
     with col_v1:
@@ -1618,10 +1797,13 @@ with tab_fusion:
     </div>
     """, unsafe_allow_html=True)
 
-    curr = st.session_state.current_assessment
-    dmg_val = curr.get("damage_results", {}).get("severity_score", 0.40) if curr.get("damage_results") else 0.22
-    viol_val = curr.get("violation_results", {}).get("violation_score", 45.0) / 100.0 if curr.get("violation_results") else 0.45
-    haz_val = curr.get("hazard_results", {}).get("hazard_score", 30.0) / 100.0 if curr.get("hazard_results") else 0.35
+    dmg_src = st.session_state.get("assessment_damage") or st.session_state.current_assessment
+    viol_src = st.session_state.get("assessment_violation") or st.session_state.current_assessment
+    haz_src = st.session_state.get("assessment_hazard") or st.session_state.current_assessment
+
+    dmg_val = float(dmg_src.get("damage_results", {}).get("severity_score", 0.22)) if dmg_src.get("damage_results") else 0.22
+    viol_val = float(viol_src.get("violation_results", {}).get("violation_score", 45.0)) / 100.0 if viol_src.get("violation_results") else 0.45
+    haz_val = float(haz_src.get("hazard_results", {}).get("hazard_score", 30.0)) / 100.0 if haz_src.get("hazard_results") else 0.35
 
     with st.expander("⚙️ Driving Environment & Vehicle Physics Settings for this Assessment", expanded=True):
         f_p1, f_p2, f_p3 = st.columns(3)
@@ -1800,6 +1982,38 @@ with tab_fusion:
         </div>
         """, unsafe_allow_html=True)
 
+    # Persist Fusion Payload
+    fusion_img = None
+    if st.session_state.get("assessment_damage") and st.session_state.assessment_damage.get("annotated_image"):
+        fusion_img = st.session_state.assessment_damage["annotated_image"]
+    elif st.session_state.get("assessment_violation") and st.session_state.assessment_violation.get("annotated_image"):
+        fusion_img = st.session_state.assessment_violation["annotated_image"]
+    elif st.session_state.get("assessment_hazard") and st.session_state.assessment_hazard.get("annotated_image"):
+        fusion_img = st.session_state.assessment_hazard["annotated_image"]
+
+    fusion_payload = {
+        "modality": "Unified Multimodal Risk & Stopping Physics",
+        "overall_risk": float(comp_score * 100),
+        "severity_label": comp_label,
+        "severity_color": comp_color,
+        "annotated_image": fusion_img,
+        "environmental_factors": {
+            "weather": weather,
+            "lighting": "Daylight" if "Daylight" in weather else ("Night" if "Night" in weather else "Fog"),
+            "traffic_density": "Moderate",
+            "multiplier": env_multiplier,
+            "road_surface": road_surface,
+            "vehicle_class": fusion_vehicle,
+            "speed_kmh": f"{fusion_speed:.1f} km/h",
+            "stopping_distance_m": f"{d_total:.1f} m"
+        },
+        "damage_results": (st.session_state.get("assessment_damage") or {}).get("damage_results"),
+        "violation_results": (st.session_state.get("assessment_violation") or {}).get("violation_results"),
+        "hazard_results": (st.session_state.get("assessment_hazard") or {}).get("hazard_results"),
+        "notes": f"Composite Multimodal Analysis: Speed {fusion_speed:.0f} km/h on {road_surface}. Stopping distance: {d_total:.1f}m."
+    }
+    st.session_state.assessment_fusion = fusion_payload
+
 
 # ==============================================================================
 # TAB 6: INCIDENT DOSSIER (PDF REPORT)
@@ -1816,12 +2030,40 @@ with tab_report:
     </div>
     """, unsafe_allow_html=True)
 
-    curr = st.session_state.current_assessment
+    st.markdown("**Select AI Model Dossier to Preview & Export:**")
+    report_target = st.radio(
+        "Choose AI Model / Assessment to Export",
+        [
+            "🚗 Car Damage Severity & Claims",
+            "📹 Dashcam Video Collision Risk",
+            "🛣️ Road Surface Hazard & Potholes",
+            "🏍️ Two-Wheeler Safety & E-Challan",
+            "🌐 All-in-One Multimodal Composite Risk"
+        ],
+        horizontal=True,
+        key="report_modality_selector"
+    )
+
+    if "🚗" in report_target:
+        selected_dossier = st.session_state.get("assessment_damage")
+    elif "📹" in report_target:
+        selected_dossier = st.session_state.get("assessment_video")
+    elif "🛣️" in report_target:
+        selected_dossier = st.session_state.get("assessment_hazard")
+    elif "🏍️" in report_target:
+        selected_dossier = st.session_state.get("assessment_violation")
+    else:
+        selected_dossier = st.session_state.get("assessment_fusion")
+
+    curr = selected_dossier if selected_dossier is not None else st.session_state.current_assessment
+    ov_risk = float(curr.get("overall_risk", 25.0))
+    inc_id = curr.get("incident_id", "INC-2026-CH-9941")
+
     rep_col1, rep_col2 = st.columns([1, 1.2])
 
     with rep_col1:
         st.markdown("#### Metadata & Surveyor Configuration")
-        incident_id_in = st.text_input("Incident Reference ID", value=curr["incident_id"], key="inc_id_tab6")
+        incident_id_in = st.text_input("Incident Reference ID", value=inc_id, key="inc_id_tab6")
         location_in = st.text_input("Highway Geofence / Sector", value="NH-48 Chennai-Bengaluru Highway, Km 28.4", key="loc_in_tab6")
 
         m_c1, m_c2 = st.columns(2)
@@ -1845,10 +2087,10 @@ with tab_report:
         vin_chassis_in = st.text_input("Vehicle VIN / Chassis Identifier", value="MA1TA2DK8N2108849", key="vin_tab6")
 
         st.write("#### Dispatched Emergency Assets:")
-        d_als = st.checkbox("Tier-1 ALS Ambulance Unit #108 Dispatched", value=(curr["overall_risk"] >= 70), key="d_als_tab6")
-        d_pol = st.checkbox("Highway Police Sector Interceptor #04 Dispatched", value=(curr["overall_risk"] >= 40), key="d_pol_tab6")
-        d_tow = st.checkbox("Heavy Recovery Flatbed Dispatched", value=(curr["overall_risk"] >= 50), key="d_tow_tab6")
-        d_pwd = st.checkbox("PWD Emergency Asphalt Repair Crew Dispatched", value=(curr.get("hazard_results", {}).get("hazard_score", 0) >= 38), key="d_pwd_tab6")
+        d_als = st.checkbox("Tier-1 ALS Ambulance Unit #108 Dispatched", value=(ov_risk >= 70), key=f"d_als_{report_target[:2]}")
+        d_pol = st.checkbox("Highway Police Sector Interceptor #04 Dispatched", value=(ov_risk >= 40), key=f"d_pol_{report_target[:2]}")
+        d_tow = st.checkbox("Heavy Recovery Flatbed Dispatched", value=(ov_risk >= 50), key=f"d_tow_{report_target[:2]}")
+        d_pwd = st.checkbox("PWD Emergency Asphalt Repair Crew Dispatched", value=(curr.get("hazard_results", {}).get("hazard_score", 0) >= 38 if curr.get("hazard_results") else False), key=f"d_pwd_{report_target[:2]}")
 
         active_dispatches = []
         if d_als: active_dispatches.append("Ambulance Unit #108")
@@ -1864,18 +2106,18 @@ with tab_report:
         rep_lux = "6,500 Lux (Daylight)" if "Daylight" in rep_weather else ("35 Lux (Night Corridor)" if "Night" in rep_weather else "450 Lux (Atmospheric Fog)")
 
         default_remarks = (
-            f"Automated multimodal collision inspection executed on edge node. "
+            f"Automated {curr.get('modality', 'multimodal')} evaluation executed on edge node. "
+            f"Triage status: {curr.get('severity_label', 'Nominal')} ({ov_risk:.1f}% risk index). "
             f"Underwriter: {insurer_select} (Policy: {policy_num_in}). "
             f"Vehicle VIN: {vin_chassis_in}. "
             f"Assessing Officer: {lead_investigator} ({lead_badge}). "
-            f"Dispatched Asset(s): {dispatches_txt}. "
-            f"Corridor speed profile: {rep_speed:.1f} km/h, road friction profile: {rep_road}."
+            f"Dispatched Asset(s): {dispatches_txt}."
         )
 
         surveyor_remarks = st.text_area(
             "Investigator Findings & Remarks",
             value=default_remarks,
-            key="remarks_tab6"
+            key=f"remarks_{report_target[:2]}"
         )
 
     with rep_col2:
@@ -1887,9 +2129,9 @@ with tab_report:
             <b>Lead Investigator:</b> {lead_investigator} (Badge: <code>{lead_badge}</code>)<br>
             <b>Insurer / Policy:</b> {insurer_select} • <code>{policy_num_in}</code><br>
             <b>Vehicle VIN:</b> <code>{vin_chassis_in}</code><br>
-            <b>Evaluation Modality:</b> {curr['modality']}<br>
-            <b>Overall Composite Risk:</b> <span style="font-weight:bold; color:{curr['severity_color']};">{curr['overall_risk']:.1f}%</span><br>
-            <b>Status:</b> {curr['severity_label']}<br>
+            <b>Evaluation Modality:</b> {curr.get('modality', 'Multimodal Inspection')}<br>
+            <b>Overall Composite Risk:</b> <span style="font-weight:bold; color:{curr.get('severity_color', '#3B82F6')};">{ov_risk:.1f}%</span><br>
+            <b>Status:</b> {curr.get('severity_label', 'Nominal')}<br>
             <b>Geofence Sector:</b> {location_in}<br>
             <b>Emergency Assets:</b> {dispatches_txt}<br>
             <b>Timestamp:</b> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
@@ -1897,7 +2139,7 @@ with tab_report:
         """, unsafe_allow_html=True)
 
         if curr.get("annotated_image") is not None:
-            st.image(curr["annotated_image"], caption="Forensic Visual Evidence for Report", use_container_width=True)
+            st.image(curr["annotated_image"], caption=f"Forensic Evidence: {curr.get('modality', 'Snapshot')}", use_container_width=True)
 
     st.markdown("---")
     try:
@@ -1913,9 +2155,9 @@ with tab_report:
 
         pdf_bytes = generate_incident_pdf(
             incident_id=incident_id_in,
-            modality_type=curr["modality"],
-            overall_risk=curr["overall_risk"],
-            status_label=curr["severity_label"],
+            modality_type=curr.get("modality", "Multimodal Road Safety"),
+            overall_risk=ov_risk,
+            status_label=curr.get("severity_label", "Nominal"),
             damage_results=curr.get("damage_results"),
             violation_results=curr.get("violation_results"),
             hazard_results=curr.get("hazard_results"),
@@ -1926,10 +2168,11 @@ with tab_report:
 
         b1, b2, b3 = st.columns([1, 2, 1])
         with b2:
+            safe_modality = curr.get('modality', 'Report').split('(')[0].strip().replace(' ', '_').replace('&', 'and')
             st.download_button(
-                label="📄 Export Verified PDF Incident Report",
+                label=f"📄 Export Verified PDF Dossier ({report_target.split(' ')[1]})",
                 data=pdf_bytes,
-                file_name=f"Official_Incident_Report_{incident_id_in}.pdf",
+                file_name=f"Official_Incident_Report_{incident_id_in}_{safe_modality}.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
