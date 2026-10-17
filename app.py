@@ -66,7 +66,7 @@ st.markdown("""
 <style>
     /* Global styles */
     .block-container {
-        padding-top: 1.5rem;
+        padding-top: 4.2rem;
         padding-bottom: 2.5rem;
     }
     
