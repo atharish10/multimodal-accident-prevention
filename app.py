@@ -212,7 +212,8 @@ st.markdown("""
         padding-bottom: 4px;
         margin-bottom: 16px;
     }
-    div[data-testid="stTabs"] button {
+    div[data-testid="stTabs"] button,
+    div[data-testid="stTabs"] [role="tab"] {
         color: #94A3B8 !important;
         font-weight: 500 !important;
         font-size: 0.88rem !important;
@@ -221,14 +222,17 @@ st.markdown("""
         margin-right: 2px !important;
         border: 1px solid transparent !important;
         background: transparent !important;
+        cursor: pointer !important;
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    div[data-testid="stTabs"] button:hover {
+    div[data-testid="stTabs"] button:hover,
+    div[data-testid="stTabs"] [role="tab"]:hover {
         color: #F8FAFC !important;
         background: rgba(255, 255, 255, 0.04) !important;
         border-color: rgba(255, 255, 255, 0.06) !important;
     }
-    div[data-testid="stTabs"] button[aria-selected="true"] {
+    div[data-testid="stTabs"] button[aria-selected="true"],
+    div[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
         color: #FFFFFF !important;
         background: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, rgba(37, 99, 235, 0.08) 100%) !important;
         border: 1px solid rgba(59, 130, 246, 0.35) !important;
