@@ -1,5 +1,9 @@
 # Multimodal AI System for Early Detection, Accident Prevention & Vehicle Damage Severity Classification
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://multimodal-accident-prevention.streamlit.app)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/atharish10/multimodal-accident-prevention)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python)](https://python.org)
+
 **Department:** B.Tech Artificial Intelligence & Data Science  
 **Project Team:** HARISH AT & BARATHRAJ AS  
 **Supervisor / Guide:** Dr. A. ARUN  

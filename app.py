@@ -5,7 +5,7 @@ Batch: D16 | Investigators: Harish AT & Barathraj AS | Supervisor: Dr. A. Arun
 """
 
 # ── DEPLOYMENT URL ─────────────────────────────────────────────────────────────
-APP_URL = "https://atharish10-multimodal-accident-prevention-app-7u8wx1.streamlit.app/"
+APP_URL = "https://multimodal-accident-prevention.streamlit.app"
 # ───────────────────────────────────────────────────────────────────────────────
 
 import streamlit as st
