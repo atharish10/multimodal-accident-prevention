@@ -624,10 +624,80 @@ st.sidebar.link_button(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("Active Telemetry Controls")
-simulated_speed = st.sidebar.slider("Simulated Vehicle Speed (km/h)", 20.0, 140.0, 65.0, 5.0)
-simulated_riders = st.sidebar.slider("Two-Wheeler Occupants / Riders", 1, 4, 3)
-simulated_helmet = st.sidebar.checkbox("Helmet Detected on Riders", value=False)
+st.sidebar.markdown("### Active Telemetry & Environmental Controls")
+
+with st.sidebar.expander("🚗 Vehicle Kinematics & Driver Telemetry", expanded=True):
+    simulated_speed = st.slider("Simulated Vehicle Speed (km/h)", 20.0, 160.0, 65.0, 5.0)
+    vehicle_type_label = st.selectbox(
+        "Vehicle Class & Mass Profile",
+        [
+            "Passenger Sedan (1,400 kg)",
+            "Compact SUV (1,850 kg)",
+            "Commercial Hauler / Bus (8,500 kg)",
+            "Two-Wheeler Motorcycle (180 kg)"
+        ]
+    )
+    if "Sedan" in vehicle_type_label:
+        vehicle_mass_kg = 1400.0
+    elif "SUV" in vehicle_type_label:
+        vehicle_mass_kg = 1850.0
+    elif "Commercial" in vehicle_type_label:
+        vehicle_mass_kg = 8500.0
+    else:
+        vehicle_mass_kg = 180.0
+
+    headway_dist = st.slider("Following Distance / Headway (m)", 5.0, 100.0, 28.0, 1.0)
+    driver_state_label = st.selectbox(
+        "Driver Cognitive State",
+        [
+            "Alert & Attentive (t_rxn: 0.8s)",
+            "Mild Distraction / Infotainment (t_rxn: 1.4s)",
+            "Severe Phone Usage (t_rxn: 2.0s)",
+            "Drowsy / Micro-Sleep (t_rxn: 2.6s)"
+        ]
+    )
+    if "Alert" in driver_state_label:
+        driver_reaction_sec = 0.8
+    elif "Mild" in driver_state_label:
+        driver_reaction_sec = 1.4
+    elif "Severe" in driver_state_label:
+        driver_reaction_sec = 2.0
+    else:
+        driver_reaction_sec = 2.6
+
+    # Dynamic Time-to-Collision (TTC) Calculation
+    v_ms = simulated_speed / 3.6
+    ttc_sec = headway_dist / max(0.5, v_ms)
+    if ttc_sec < 1.5:
+        st.markdown(f"""
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 8px 12px; margin-top: 8px;">
+            <span style="color: #F87171; font-weight: 700; font-size: 0.78rem;">🚨 CRITICAL TTC: {ttc_sec:.1f}s</span><br>
+            <span style="color: #CBD5E1; font-size: 0.72rem;">AEB Pre-Collision Intervention Primed</span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 8px 12px; margin-top: 8px;">
+            <span style="color: #34D399; font-weight: 700; font-size: 0.78rem;">SAFE HEADWAY: {ttc_sec:.1f}s TTC</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+with st.sidebar.expander("🏍️ Two-Wheeler Enforcement Parameters", expanded=False):
+    simulated_riders = st.slider("Two-Wheeler Occupants / Riders", 1, 4, 3)
+    simulated_helmet = st.checkbox("Rider / Driver Helmet Detected", value=False)
+    pillion_helmet = st.checkbox("Pillion Occupant(s) Helmet Detected", value=False)
+    enforced_speed_limit = st.selectbox("Corridor Speed Limit (km/h)", [40.0, 50.0, 60.0, 80.0], index=2)
+
+with st.sidebar.expander("🌧️ Sensor & Environmental Telemetry", expanded=False):
+    env_weather = st.selectbox(
+        "Atmospheric Meteorology",
+        ["Clear / Dry Daylight", "Heavy Monsoon Rain", "Dense Winter Fog", "Night Highway / Glare"]
+    )
+    env_road = st.selectbox(
+        "Pavement Friction Profile",
+        ["Dry Smooth Bitumen", "Wet Slippery Asphalt", "Cracked Potholed Highway", "Loose Gravel Surface"]
+    )
+    ambient_lux = st.slider("Ambient Illuminance (Lux)", 5, 10000, 6500, 250)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
@@ -711,11 +781,95 @@ with tab_damage:
 
     car_bgr = cv2.cvtColor(np.array(raw_car_img.convert("RGB")), cv2.COLOR_RGB2BGR)
 
+    with st.expander("🛡️ Forensic Claims & Adjuster Telemetry Controls", expanded=True):
+        fc_c1, fc_c2 = st.columns(2)
+        with fc_c1:
+            triage_policy_mode = st.selectbox(
+                "Insurance Policy Underwriting Tier",
+                [
+                    "Comprehensive Zero-Depreciation (100% Parts & Labor)",
+                    "Standard Comprehensive (50% Plastic/Glass Deductible)",
+                    "Third-Party Liability Only (Salvage Settlement)"
+                ],
+                key="policy_tier_tab1"
+            )
+            voluntary_deductible = st.slider(
+                "Policyholder Voluntary Deductible (₹)",
+                min_value=0,
+                max_value=25000,
+                value=2500,
+                step=500,
+                key="deductible_tab1"
+            )
+        with fc_c2:
+            airbag_deployed = st.checkbox(
+                "SRS Airbag Modules Deployed (Steering/Curtain)",
+                value=("High" in scenario or "Structural" in scenario),
+                key="airbag_tab1"
+            )
+            subframe_distorted = st.checkbox(
+                "Structural Subframe Twisted / Frame Rail Pull Required",
+                value=("High" in scenario or "Structural" in scenario),
+                key="subframe_tab1"
+            )
+            oem_parts_pref = st.checkbox("OEM Authorized Parts (vs Aftermarket Equivalent)", value=True, key="oem_pref_tab1")
+
     with st.spinner("Analyzing structural deformity and impact boundaries..."):
         damage_res = damage_clf.assess_damage(car_bgr, None, scenario_hint)
         annotated_car_rgb = cv2.cvtColor(damage_res["annotated_image"], cv2.COLOR_BGR2RGB)
 
+        # Dynamic Financial Claims Assessment
+        s_level = damage_res["severity_level"]
+        if s_level == "LOW":
+            base_parts = 3500.0
+            base_labor = 2800.0
+            est_days = 2
+        elif s_level == "MID":
+            base_parts = 24500.0
+            base_labor = 11200.0
+            est_days = 7
+        else:
+            base_parts = 118000.0
+            base_labor = 45000.0
+            est_days = 24
+
+        if not oem_parts_pref:
+            base_parts *= 0.72
+
+        airbag_cost = 45000.0 if airbag_deployed else 0.0
+        frame_cost = 32000.0 if subframe_distorted else 0.0
+        gross_claim = base_parts + base_labor + airbag_cost + frame_cost
+
+        if "Zero-Depreciation" in triage_policy_mode:
+            dep_rate = 0.0
+        elif "Standard" in triage_policy_mode:
+            dep_rate = 0.20
+        else:
+            dep_rate = 0.65
+
+        depreciation_amt = base_parts * dep_rate
+        deductible_amt = min(gross_claim, float(voluntary_deductible))
+        net_payout = max(0.0, gross_claim - depreciation_amt - deductible_amt)
+
+        total_loss_threshold = 150000.0
+        is_ctl = gross_claim >= total_loss_threshold or (s_level == "HIGH" and subframe_distorted)
+        settlement_status = "Constructive Total Loss (CTL) • Salvage Auction" if is_ctl else "Repair Authorized & Approved"
+
         # Update Session State
+        damage_res["financial_claims"] = {
+            "policy_tier": triage_policy_mode,
+            "base_parts": base_parts,
+            "base_labor": base_labor,
+            "airbag_cost": airbag_cost,
+            "frame_cost": frame_cost,
+            "gross_claim": gross_claim,
+            "depreciation": depreciation_amt,
+            "deductible": deductible_amt,
+            "net_payout": net_payout,
+            "settlement_status": settlement_status,
+            "repair_cycle_days": est_days
+        }
+
         st.session_state.current_assessment.update({
             "modality": f"Vehicle Damage Severity ({damage_res['severity_level']})",
             "overall_risk": float(damage_res["severity_score"] * 100),
@@ -731,7 +885,6 @@ with tab_damage:
 
     with col_metrics:
         # Severity Badge
-        s_level = damage_res["severity_level"]
         badge_class = "sev-badge-low" if s_level == "LOW" else ("sev-badge-mid" if s_level == "MID" else "sev-badge-high")
         st.markdown(f"""
         <div class="{badge_class}">
@@ -771,7 +924,7 @@ with tab_damage:
             st.markdown(f"""
             <div class="kpi-tile">
                 <div class="kpi-label">Est. Repair Cost</div>
-                <div class="kpi-value" style="font-size: 1.05rem;">{damage_res.get('repair_estimate', 'N/A')}</div>
+                <div class="kpi-value" style="font-size: 1.05rem;">₹{gross_claim:,.0f}</div>
                 <div class="kpi-subtext">Authorized workshop estimate</div>
             </div>
             """, unsafe_allow_html=True)
@@ -802,6 +955,38 @@ with tab_damage:
             {damage_res['recommended_action']}
         </div>
         """, unsafe_allow_html=True)
+
+    st.markdown("#### Itemized Insurance Settlement Breakdown:")
+    st.markdown(f"""
+    <div class="saas-card" style="margin-bottom: 14px;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px;">
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 8px;">
+                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;">Parts Replacement</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">₹{base_parts:,.0f}</div>
+                <div style="font-size: 0.70rem; color: #64748B;">{'OEM Certified' if oem_parts_pref else 'Aftermarket'}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 8px;">
+                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;">Labor & Paint Booth</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">₹{base_labor:,.0f}</div>
+                <div style="font-size: 0.70rem; color: #64748B;">{est_days} Days Est. Cycle</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 8px;">
+                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;">Airbags & Chassis</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">₹{(airbag_cost + frame_cost):,.0f}</div>
+                <div style="font-size: 0.70rem; color: {'#F87171' if (airbag_cost+frame_cost)>0 else '#64748B'};">{'SRS/Frame Triggered' if (airbag_cost+frame_cost)>0 else 'None'}</div>
+            </div>
+            <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); padding: 10px 12px; border-radius: 8px;">
+                <div style="color: #60A5FA; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;">Net Insurer Payout</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: #38BDF8;">₹{net_payout:,.0f}</div>
+                <div style="font-size: 0.70rem; color: #93C5FD;">Gross: ₹{gross_claim:,.0f} (Ded: ₹{deductible_amt:,.0f})</div>
+            </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; font-size: 0.82rem;">
+            <span><b>Claim Underwriting Status:</b> <span style="color: {'#EF4444' if is_ctl else '#34D399'}; font-weight: 700;">{settlement_status}</span></span>
+            <span style="color: #94A3B8; font-size: 0.76rem;">Policy Mode: {triage_policy_mode.split('(')[0]}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.write("#### Technical Breakdown of Identified Deformities:")
     defect_table = []
@@ -841,6 +1026,15 @@ with tab_video:
         horizontal=True
     )
 
+    with st.expander("⚙️ Spatio-Temporal Pipeline & AEB Calibration Controls", expanded=False):
+        c_p1, c_p2, c_p3 = st.columns(3)
+        with c_p1:
+            sim_frame_delay = st.slider("Playback Frame Delay (seconds)", 0.01, 0.10, 0.03, 0.01, key="frame_delay_tab2")
+        with c_p2:
+            aeb_threshold_pct = st.slider("Autonomous Emergency Braking (AEB) Threshold (%)", 50.0, 90.0, 70.0, 5.0, key="aeb_thresh_tab2")
+        with c_p3:
+            optical_flow_sens = st.slider("Optical Flow Looming Sensitivity Multiplier", 0.5, 2.0, 1.0, 0.1, key="optical_sens_tab2")
+
     # Option A: Real Highway Dashcam Simulation
     if "Highway Dashcam Simulation" in stream_mode:
         dashcam_path = SAMPLE_DATA_DIR / "sample_traffic_dashcam.mp4"
@@ -857,6 +1051,9 @@ with tab_video:
             lstm_pipeline.reset()
             frame_count = 0
             total_f = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 100
+            risk_history = []
+            frame_indices = []
+            aeb_engaged_count = 0
 
             while cap.isOpened():
                 ret, vframe = cap.read()
@@ -872,7 +1069,23 @@ with tab_video:
                 annotated_rgb = cv2.cvtColor(sim_res["annotated_frame"], cv2.COLOR_BGR2RGB)
 
                 frame_ph.image(annotated_rgb, caption=f"Real Highway Dashcam Stream • Frame {frame_count+1}/{total_f}", use_container_width=True)
-                risk_pct = float(sim_res["risk_score"] * 100)
+                raw_risk = float(sim_res["risk_score"] * 100)
+                risk_pct = min(99.0, max(2.0, raw_risk * optical_flow_sens))
+                risk_history.append(risk_pct)
+                frame_indices.append(frame_count + 1)
+                is_aeb = risk_pct >= aeb_threshold_pct
+                if is_aeb:
+                    aeb_engaged_count += 1
+
+                aeb_html = f"""
+                <div style="background: rgba(239, 68, 68, 0.18); border: 1px solid #EF4444; border-radius: 6px; padding: 6px 10px; margin-top: 8px; color: #FCA5A5; font-size: 0.74rem; font-weight: 700;">
+                    🚨 AEB ACTIVE • Emergency Deceleration (-8.4 m/s²)
+                </div>
+                """ if is_aeb else f"""
+                <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 6px 10px; margin-top: 8px; color: #34D399; font-size: 0.74rem; font-weight: 600;">
+                    🛡️ AEB Standby • Velocity Guard Primed
+                </div>
+                """
 
                 metrics_ph.markdown(f"""
                 <div style="background: #111827; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);">
@@ -904,11 +1117,12 @@ with tab_video:
                     <div style="font-size: 0.82rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;">
                         <b>Status:</b> <span style="color: {sim_res['severity_color']}; font-weight: 600;">{sim_res['warning_status']}</span>
                     </div>
+                    {aeb_html}
                 </div>
                 """, unsafe_allow_html=True)
 
                 frame_count += 1
-                time.sleep(0.04)
+                time.sleep(sim_frame_delay)
 
             cap.release()
             st.success("Continuous dashcam stream completed successfully.")
@@ -918,6 +1132,36 @@ with tab_video:
                 use_container_width=True,
                 key=f"sim_final_gauge_{int(time.time())}"
             )
+
+            # Spatio-Temporal Trajectory Plot
+            st.write("#### Spatio-Temporal Collision Trajectory History:")
+            fig_trajectory = go.Figure()
+            fig_trajectory.add_trace(go.Scatter(
+                x=frame_indices,
+                y=risk_history,
+                mode="lines",
+                line=dict(color="#3B82F6", width=2.5),
+                name="Rolling Risk Score"
+            ))
+            fig_trajectory.add_hline(
+                y=aeb_threshold_pct,
+                line_dash="dash",
+                line_color="#EF4444",
+                annotation_text=f"AEB Intervention Threshold ({aeb_threshold_pct:.0f}%)",
+                annotation_position="bottom right"
+            )
+            fig_trajectory.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font={"color": "#94A3B8"},
+                title=f"Temporal Collision Trajectory • {aeb_engaged_count} Frames with AEB Active",
+                xaxis_title="Processed Frame Index",
+                yaxis_title="Dynamic Risk Score (%)",
+                yaxis=dict(range=[0, 105]),
+                height=260,
+                margin=dict(l=20, r=20, t=35, b=20)
+            )
+            st.plotly_chart(fig_trajectory, use_container_width=True)
 
     # Option B: Upload Custom Dashcam Video
     elif "Upload Custom Dashcam" in stream_mode:
@@ -1044,6 +1288,19 @@ with tab_hazards:
     </div>
     """, unsafe_allow_html=True)
 
+    with st.expander("🛣️ Pavement Geometry & Dynamic Shock Load Controls", expanded=True):
+        hz_p1, hz_p2, hz_p3 = st.columns(3)
+        with hz_p1:
+            pothole_depth_cm = st.slider("Estimated Cavity Depth (cm)", 2.0, 25.0, 8.5, 0.5, key="pothole_depth_tab3")
+        with hz_p2:
+            pavement_subgrade = st.selectbox(
+                "Pavement Sub-Grade Structure",
+                ["Bituminous Concrete (Flexible)", "Granular Crushed Stone (WBM)", "Portland Cement Concrete (Rigid)"],
+                key="pavement_subgrade_tab3"
+            )
+        with hz_p3:
+            hazard_approach_speed = st.slider("Vehicle Approach Velocity (km/h)", 10.0, 120.0, simulated_speed, 5.0, key="approach_speed_tab3")
+
     hz_col1, hz_col2 = st.columns([1, 1])
     with hz_col1:
         use_hz_sample = st.radio("Hazard Input Source", ["Asphalt Road Benchmark (sample_pothole_road.jpg)", "Upload Custom Road Photo"], horizontal=True)
@@ -1065,6 +1322,24 @@ with tab_hazards:
         h_color = "#10B981" if h_score < 0.38 else ("#F59E0B" if h_score < 0.72 else "#EF4444")
         h_tier = "LOW" if h_score < 0.38 else ("MODERATE" if h_score < 0.72 else "HIGH")
 
+        # Dynamic Shock Load Calculation
+        v_approach_ms = hazard_approach_speed / 3.6
+        g_shock = min(6.5, (v_approach_ms**2) / (2.0 * max(0.02, pothole_depth_cm / 100.0) * 9.81) * 0.075)
+
+        if g_shock >= 2.5:
+            shock_status = "CRITICAL: Rim Buckling & Axle Fracture Risk"
+            shock_color = "#EF4444"
+        elif g_shock >= 1.4:
+            shock_status = "MODERATE: Suspension Degradation & Alignment Drift"
+            shock_color = "#F59E0B"
+        else:
+            shock_status = "LOW: Absorbed by Pneumatic Tire Compliance"
+            shock_color = "#10B981"
+
+        patch_volume_m3 = (pothole_depth_cm / 100.0) * 0.45 * max(1, haz_res["hazard_count"])
+        patch_tons = patch_volume_m3 * 2.4
+        repair_sla = "< 24 Hours Emergency Hot-Mix Patch" if h_tier == "HIGH" else ("< 72 Hours Standard Cold-Mix Patch" if h_tier == "MODERATE" else "Routine Survey Audit")
+
         st.session_state.current_assessment.update({
             "modality": "Road Surface Hazard & Pothole Segmentation",
             "overall_risk": float(h_score * 100),
@@ -1074,7 +1349,10 @@ with tab_hazards:
             "hazard_results": {
                 "hazard_score": float(h_score * 100),
                 "hazard_count": haz_res["hazard_count"],
-                "hazards_detected": [f"{h['type'].upper()} ({h['severity']})" for h in haz_res.get("hazards_detected", [])]
+                "hazards_detected": [f"{h['type'].upper()} ({h['severity']})" for h in haz_res.get("hazards_detected", [])],
+                "shock_load_g": g_shock,
+                "pothole_depth_cm": pothole_depth_cm,
+                "patch_tons": patch_tons
             }
         })
 
@@ -1106,6 +1384,38 @@ with tab_hazards:
         </div>
         """, unsafe_allow_html=True)
 
+    st.markdown("#### Municipal PWD / NHAI Infrastructure Work-Order:")
+    st.markdown(f"""
+    <div class="saas-card" style="margin-top: 14px;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px;">
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 8px;">
+                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;">Work Order Ref</div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #F8FAFC; font-family: monospace;">WO-PWD-CH884</div>
+                <div style="font-size: 0.70rem; color: #64748B;">Sector: NH-48 Km 28.4</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 8px;">
+                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;">Vertical Shock</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: {shock_color};">{g_shock:.2f} G</div>
+                <div style="font-size: 0.70rem; color: #94A3B8;">@ {hazard_approach_speed:.0f} km/h</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: 8px;">
+                <div style="color: #94A3B8; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;">Bituminous Patch</div>
+                <div style="font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">{patch_tons:.2f} Tons</div>
+                <div style="font-size: 0.70rem; color: #64748B;">Depth: {pothole_depth_cm:.1f} cm ({pavement_subgrade.split('(')[0]})</div>
+            </div>
+            <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); padding: 10px 12px; border-radius: 8px;">
+                <div style="color: #60A5FA; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;">Maintenance SLA</div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: {'#F87171' if h_tier=='HIGH' else '#38BDF8'};">{repair_sla.split()[0]} {repair_sla.split()[1]}</div>
+                <div style="font-size: 0.70rem; color: #93C5FD;">{repair_sla.split('Hours ')[-1] if 'Hours ' in repair_sla else 'Survey'}</div>
+            </div>
+        </div>
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center;">
+            <span><b>Dynamic Chassis Stress:</b> <span style="color: {shock_color}; font-weight: 600;">{shock_status}</span></span>
+            <span style="color: #94A3B8; font-size: 0.76rem;">Authority: PWD Highways Dept (Zone IV)</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # ==============================================================================
 # TAB 4: TWO-WHEELER SAFETY & VIOLATIONS
@@ -1121,6 +1431,23 @@ with tab_violations:
         </p>
     </div>
     """, unsafe_allow_html=True)
+
+    with st.expander("⚖️ Traffic Enforcement Jurisdiction & Statutory Codes", expanded=True):
+        j_col1, j_col2 = st.columns(2)
+        with j_col1:
+            enforcement_jurisdiction = st.selectbox(
+                "Enforcement Authority & Geofence",
+                [
+                    "Greater Chennai Traffic Police (GCTP) - Zone IV",
+                    "Bengaluru City Traffic Police (BTP) - Central Command",
+                    "Delhi Traffic Police - Northern Range",
+                    "NHAI Highway Patrol Division - NH-48 Sector"
+                ],
+                key="jurisdiction_tab4"
+            )
+        with j_col2:
+            cargo_overload_flag = st.checkbox("Commercial Delivery Cargo Box / Hazardous Overhang Detected", value=False, key="cargo_flag_tab4")
+            pillions_without_helmet = max(0, simulated_riders - 1) if not pillion_helmet else 0
 
     v_src_col1, v_src_col2 = st.columns([1, 1])
     with v_src_col1:
@@ -1149,6 +1476,48 @@ with tab_violations:
         v_color = "#10B981" if v_score < 0.38 else ("#F59E0B" if v_score < 0.72 else "#EF4444")
         v_tier = "LOW" if v_score < 0.38 else ("MODERATE" if v_score < 0.72 else "HIGH")
 
+        # Dynamic Motor Vehicles Act (MVA 2019) Fine Calculation
+        challan_items = []
+        total_challan_fine = 0
+
+        if not simulated_helmet:
+            challan_items.append(("Section 129 MVA", "Rider / Driver Without Protective Headgear", 1000, "3-Month License Suspension"))
+            total_challan_fine += 1000
+
+        if simulated_riders > 1 and not pillion_helmet:
+            challan_items.append(("Section 129 MVA", f"Pillion Occupant(s) ({pillions_without_helmet}) Without Protective Headgear", 1000 * max(1, pillions_without_helmet), "Statutory Fine"))
+            total_challan_fine += 1000 * max(1, pillions_without_helmet)
+
+        if simulated_riders > 2:
+            excess_riders = simulated_riders - 2
+            challan_items.append(("Section 194C MVA", f"Overcapacity Carrying of {excess_riders} Excess Passenger(s)", 2000, "Safety Disqualification"))
+            total_challan_fine += 2000
+
+        if simulated_speed > enforced_speed_limit:
+            over_speed = simulated_speed - enforced_speed_limit
+            challan_items.append(("Section 183(1) MVA", f"Corridor Overspeeding (+{over_speed:.0f} km/h above {enforced_speed_limit:.0f} km/h limit)", 2000, "Automated Radar Citation"))
+            total_challan_fine += 2000
+
+        if cargo_overload_flag:
+            challan_items.append(("Section 190(2) MVA", "Hazardous Cargo Overhang & Center of Gravity Imbalance", 1500, "Commercial Inspection Notice"))
+            total_challan_fine += 1500
+
+        # Rider Dynamic Stability Safety Index (SSI)
+        speed_penalty = max(0.0, (simulated_speed - enforced_speed_limit) * 1.1)
+        rider_penalty = (simulated_riders - 1) * 22.0
+        cargo_penalty = 18.0 if cargo_overload_flag else 0.0
+        ssi_score = max(5.0, min(100.0, 100.0 - speed_penalty - rider_penalty - cargo_penalty))
+
+        if ssi_score >= 70:
+            ssi_tier = "STABLE EQUILIBRIUM"
+            ssi_color = "#10B981"
+        elif ssi_score >= 45:
+            ssi_tier = "COMPROMISED STABILITY (CAPSIZE RISK)"
+            ssi_color = "#F59E0B"
+        else:
+            ssi_tier = "CRITICAL INSTABILITY (SKID IMMINENT)"
+            ssi_color = "#EF4444"
+
         st.session_state.current_assessment.update({
             "modality": "Two-Wheeler Safety & Compliance",
             "overall_risk": float(v_score * 100),
@@ -1157,7 +1526,10 @@ with tab_violations:
             "annotated_image": Image.fromarray(annotated_viol_rgb),
             "violation_results": {
                 "violation_score": float(v_score * 100),
-                "violations_detected": viol_res["violations"]
+                "violations_detected": viol_res["violations"],
+                "total_challan_fine": total_challan_fine,
+                "ssi_score": ssi_score,
+                "jurisdiction": enforcement_jurisdiction
             }
         })
 
@@ -1174,18 +1546,68 @@ with tab_violations:
 
         st.plotly_chart(create_gauge(v_score, "Pre-Crash Behavioral Risk Score", v_color), use_container_width=True, key="gauge_violations")
 
-        st.write("#### Active Safety Violations:")
-        if viol_res["violations"]:
-            for v in viol_res["violations"]:
-                st.error(f"⚠️ {v}")
-            st.markdown("""
-            <div class="protocol-card" style="border-left-color: #EF4444;">
-                <b>Automated E-Challan Alert Generated</b><br>
-                Motor Vehicles Act Section 129 (Helmet) & Section 194C (Overcapacity) flagged for enforcement.
+        kpi_ssi1, kpi_ssi2 = st.columns(2)
+        with kpi_ssi1:
+            st.markdown(f"""
+            <div class="kpi-tile">
+                <div class="kpi-label">Stability Index (SSI)</div>
+                <div class="kpi-value" style="color: {ssi_color};">{ssi_score:.0f} / 100</div>
+                <div class="kpi-subtext">{ssi_tier.split('(')[0]}</div>
             </div>
             """, unsafe_allow_html=True)
-        else:
-            st.success("✅ Safe Rider Compliance. Helmet and occupancy within regulatory limits.")
+        with kpi_ssi2:
+            st.markdown(f"""
+            <div class="kpi-tile">
+                <div class="kpi-label">E-Challan Penalty</div>
+                <div class="kpi-value" style="color: {'#EF4444' if total_challan_fine > 0 else '#10B981'};">₹{total_challan_fine:,}</div>
+                <div class="kpi-subtext">{len(challan_items)} Statutory Violations</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("#### Digital Statutory E-Challan Notice (MVA 2019):")
+    if challan_items:
+        challan_rows = "".join([
+            f"""<tr style="border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 0.82rem;">
+                <td style="padding: 8px 12px; font-weight: 700; color: #F87171; font-family: monospace;">{sec}</td>
+                <td style="padding: 8px 12px; color: #F8FAFC;">{desc}</td>
+                <td style="padding: 8px 12px; color: #94A3B8;">{action}</td>
+                <td style="padding: 8px 12px; text-align: right; font-weight: 800; color: #F8FAFC;">₹{amt:,}</td>
+            </tr>"""
+            for sec, desc, amt, action in challan_items
+        ])
+        st.markdown(f"""
+        <div class="saas-card" style="margin-top: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+                <div>
+                    <span style="font-weight: 800; font-size: 0.95rem; color: #F8FAFC;">E-CHALLAN NOTICE #ECH-2026-TN-992147</span><br>
+                    <span style="font-size: 0.74rem; color: #60A5FA;">{enforcement_jurisdiction}</span>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.72rem; color: #94A3B8; text-transform: uppercase;">Total Fine Amount</span><br>
+                    <span style="font-size: 1.3rem; font-weight: 800; color: #EF4444;">₹{total_challan_fine:,}</span>
+                </div>
+            </div>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="color: #94A3B8; font-size: 0.72rem; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.12);">
+                        <th style="padding: 6px 12px; text-align: left;">Section</th>
+                        <th style="padding: 6px 12px; text-align: left;">Violation Category</th>
+                        <th style="padding: 6px 12px; text-align: left;">Administrative Action</th>
+                        <th style="padding: 6px 12px; text-align: right;">Fine (INR)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {challan_rows}
+                </tbody>
+            </table>
+            <div style="margin-top: 10px; font-size: 0.74rem; color: #64748B; display: flex; justify-content: space-between;">
+                <span>Digital Signature Verified • Automated Camera ANPR Sync</span>
+                <span>Payment Window: 15 Calendar Days</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.success("✅ Fully Regulatory Compliant. Zero statutory violations detected under Motor Vehicles Act.")
 
 
 # ==============================================================================
@@ -1208,20 +1630,47 @@ with tab_fusion:
     viol_val = curr.get("violation_results", {}).get("violation_score", 45.0) / 100.0 if curr.get("violation_results") else 0.45
     haz_val = curr.get("hazard_results", {}).get("hazard_score", 30.0) / 100.0 if curr.get("hazard_results") else 0.35
 
+    with st.expander("⚖️ Bayesian Modality Weights & Kinetic Braking Telemetry", expanded=True):
+        st.markdown("**Calibrate Modality Weights (Dynamic Bayesian Normalization):**")
+        w_c1, w_c2, w_c3, w_c4 = st.columns(4)
+        with w_c1:
+            w_dmg = st.slider("W_D (Deformation)", 0.05, 0.60, 0.35, 0.05, key="w_dmg_tab5")
+        with w_c2:
+            w_viol = st.slider("W_V (Violations)", 0.05, 0.60, 0.30, 0.05, key="w_viol_tab5")
+        with w_c3:
+            w_haz = st.slider("W_H (Road Hazards)", 0.05, 0.60, 0.20, 0.05, key="w_haz_tab5")
+        with w_c4:
+            w_spd = st.slider("W_K (Speed Looming)", 0.05, 0.60, 0.15, 0.05, key="w_spd_tab5")
+
+        total_w = w_dmg + w_viol + w_haz + w_spd
+        norm_wd = w_dmg / total_w
+        norm_wv = w_viol / total_w
+        norm_wh = w_haz / total_w
+        norm_ws = w_spd / total_w
+
+        st.caption(f"Normalized Bayesian Prior Weights: Damage={norm_wd:.2f} | Violations={norm_wv:.2f} | Hazards={norm_wh:.2f} | Kinematics={norm_ws:.2f} (Total: 1.00)")
+
+        g_c1, g_c2 = st.columns(2)
+        with g_c1:
+            road_gradient_pct = st.slider("Road Incline / Decline Slope (%)", -15.0, 15.0, 0.0, 1.0, key="road_slope_tab5", help="Negative indicates downhill descent, increasing stopping distance")
+        with g_c2:
+            abs_equipped = st.checkbox("Anti-Lock Braking System (ABS) Activated", value=True, key="abs_equipped_tab5")
+
     fcol1, fcol2 = st.columns([1, 1.2])
     with fcol1:
         st.markdown("#### Environmental Sensitivity Controls")
-        weather = st.selectbox("Atmospheric Condition", ["Clear / Dry Daylight", "Heavy Monsoon Rain", "Dense Fog / Low Visibility", "Night / Low Illumination"])
-        road_surface = st.selectbox("Road Surface Condition", ["Dry Smooth Asphalt", "Wet / Puddle Slippery Asphalt", "Cracked / Potholed Highway"])
-        
+        weather = st.selectbox("Atmospheric Condition", ["Clear / Dry Daylight", "Heavy Monsoon Rain", "Dense Fog / Low Visibility", "Night / Low Illumination"], index=0 if "Clear" in env_weather else (1 if "Rain" in env_weather else (2 if "Fog" in env_weather else 3)), key="weather_select_tab5")
+        road_surface = st.selectbox("Road Surface Condition", ["Dry Smooth Bitumen", "Wet Slippery Asphalt", "Cracked Potholed Highway", "Loose Gravel Surface"], index=0 if "Dry" in env_road else (1 if "Wet" in env_road else (2 if "Cracked" in env_road else 3)), key="road_select_tab5")
+
         env_multiplier = 1.0
         if "Rain" in weather or "Wet" in road_surface:
             env_multiplier += 0.35
         if "Fog" in weather or "Night" in weather:
             env_multiplier += 0.25
 
-        # Composite Fusion Score Calculation
-        comp_score = min(0.98, ((dmg_val * 0.35) + (viol_val * 0.35) + (haz_val * 0.30)) * env_multiplier)
+        speed_norm_val = min(1.0, simulated_speed / 140.0)
+        # Composite Fusion Score Calculation with Bayesian Weights
+        comp_score = min(0.99, ((dmg_val * norm_wd) + (viol_val * norm_wv) + (haz_val * norm_wh) + (speed_norm_val * norm_ws)) * env_multiplier)
         comp_color = "#10B981" if comp_score < 0.38 else ("#F59E0B" if comp_score < 0.72 else "#EF4444")
         comp_label = "LOW RISK" if comp_score < 0.38 else ("MODERATE RISK" if comp_score < 0.72 else "CRITICAL HAZARD")
 
@@ -1232,7 +1681,7 @@ with tab_fusion:
         radar_cats = ['Structural Damage', 'Velocity Surge', 'Behavioral Violation', 'Road Hazards', 'Environmental Threat']
         radar_vals = [
             dmg_val * 100.0,
-            min(100.0, (simulated_speed / 120.0) * 100.0),
+            min(100.0, (simulated_speed / 140.0) * 100.0),
             viol_val * 100.0,
             haz_val * 100.0,
             min(100.0, (env_multiplier / 1.6) * 100.0)
@@ -1262,45 +1711,103 @@ with tab_fusion:
         st.plotly_chart(fig_radar, use_container_width=True)
 
     st.markdown("---")
-    st.markdown("#### Stopping Distance & Impact Kinetic Energy ($E_k = \\frac{1}{2}mv^2$)")
+    st.markdown("#### Stopping Distance Physics & Sensitivity Matrix ($D = v \\cdot t_{rxn} + \\frac{v^2}{2g(\\mu + \\sin\\theta)}$)")
+
+    # Dynamic Friction Physics Calculations
+    surface_friction_map = {
+        "Dry Smooth Bitumen": 0.75,
+        "Wet Slippery Asphalt": 0.45,
+        "Cracked Potholed Highway": 0.35,
+        "Loose Gravel Surface": 0.26
+    }
+    cur_base_mu = surface_friction_map.get(road_surface, 0.75)
+    eff_mu = cur_base_mu if abs_equipped else (cur_base_mu * 0.72)
+    grade_sin = road_gradient_pct / 100.0
+    denom = 2.0 * 9.81 * max(0.06, (eff_mu + grade_sin))
+
+    v_ms = simulated_speed / 3.6
+    d_rxn = v_ms * driver_reaction_sec
+    d_skid = (v_ms**2) / denom
+    d_total = d_rxn + d_skid
+    ke_kj = 0.5 * vehicle_mass_kg * (v_ms**2) / 1000.0
+
     k_col1, k_col2 = st.columns(2)
     with k_col1:
-        v_range = np.linspace(20, 120, 20)
-        mass_kg = 1400  # typical sedan
-        ke_kj = 0.5 * mass_kg * (v_range * 1000 / 3600)**2 / 1000
-        cur_ke_kj = 0.5 * mass_kg * (simulated_speed * 1000 / 3600)**2 / 1000
+        # Multi-surface stopping distance curve
+        speed_domain = np.linspace(20, 140, 25)
+        fig_stop = go.Figure()
 
-        fig_ke = go.Figure()
-        fig_ke.add_trace(go.Scatter(x=v_range, y=ke_kj, mode='lines', line=dict(color='#EF4444', width=2.5), name='Kinetic Energy'))
-        fig_ke.add_trace(go.Scatter(x=[simulated_speed], y=[cur_ke_kj], mode='markers+text', marker=dict(size=10, color='#3B82F6'), text=[f"{cur_ke_kj:.0f} kJ"], textposition="top left"))
-        fig_ke.update_layout(
+        colors_map = {
+            "Dry Smooth Bitumen": "#10B981",
+            "Wet Slippery Asphalt": "#3B82F6",
+            "Cracked Potholed Highway": "#F59E0B",
+            "Loose Gravel Surface": "#EF4444"
+        }
+
+        for s_name, s_mu in surface_friction_map.items():
+            s_eff = s_mu if abs_equipped else (s_mu * 0.72)
+            s_denom = 2.0 * 9.81 * max(0.06, (s_eff + grade_sin))
+            s_dist = ((speed_domain / 3.6) * driver_reaction_sec) + (((speed_domain / 3.6)**2) / s_denom)
+            fig_stop.add_trace(go.Scatter(
+                x=speed_domain,
+                y=s_dist,
+                mode='lines',
+                line=dict(color=colors_map[s_name], width=2),
+                name=s_name.split()[0]
+            ))
+
+        # Current Operating Marker
+        fig_stop.add_trace(go.Scatter(
+            x=[simulated_speed],
+            y=[d_total],
+            mode='markers+text',
+            marker=dict(size=11, color='#F8FAFC', line=dict(color='#3B82F6', width=2)),
+            text=[f"{d_total:.1f}m"],
+            textposition="top left",
+            name="Current State"
+        ))
+
+        fig_stop.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font={'color': '#94A3B8'},
-            title=f"Kinetic Impact: {cur_ke_kj:.0f} kJ at {simulated_speed} km/h",
+            title=f"Stopping Distance vs Velocity (Slope: {road_gradient_pct:+.0f}%)",
             xaxis_title="Velocity (km/h)",
-            yaxis_title="Kinetic Energy (kJ)",
-            height=260,
+            yaxis_title="Total Stopping Distance (m)",
+            height=280,
+            legend=dict(font=dict(size=8), orientation="h", y=-0.25),
             margin=dict(l=15, r=15, t=35, b=15)
         )
-        st.plotly_chart(fig_ke, use_container_width=True)
+        st.plotly_chart(fig_stop, use_container_width=True)
 
     with k_col2:
-        # Stopping distance formula: d = v*t_rxn + v^2 / (2*mu*g)
-        mu = 0.70 if "Dry" in road_surface else (0.42 if "Wet" in road_surface else 0.30)
-        t_rxn = 1.2
-        stop_dist = (simulated_speed * 1000 / 3600 * t_rxn) + ((simulated_speed * 1000 / 3600)**2 / (2 * mu * 9.81))
-
         st.markdown(f"""
-        <div class="kpi-tile" style="margin-top: 25px;">
-            <div class="kpi-label">Pavement Friction Coefficient (μ)</div>
-            <div class="kpi-value">{mu:.2f}</div>
-            <div class="kpi-subtext">Estimated based on {road_surface}</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+            <div class="kpi-tile">
+                <div class="kpi-label">Effective Friction (μ)</div>
+                <div class="kpi-value">{eff_mu:.2f}</div>
+                <div class="kpi-subtext">{'ABS Modulated' if abs_equipped else 'Standard (Locked Wheel)'}</div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-label">Kinetic Energy (Ek)</div>
+                <div class="kpi-value">{ke_kj:,.0f} kJ</div>
+                <div class="kpi-subtext">Mass: {vehicle_mass_kg:,.0f} kg ({vehicle_type_label.split('(')[0]})</div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-label">Reaction Distance</div>
+                <div class="kpi-value">{d_rxn:.1f} m</div>
+                <div class="kpi-subtext">Latency: {driver_reaction_sec:.1f}s ({driver_state_label.split('(')[0]})</div>
+            </div>
+            <div class="kpi-tile">
+                <div class="kpi-label">Braking Skid Distance</div>
+                <div class="kpi-value">{d_skid:.1f} m</div>
+                <div class="kpi-subtext">Deceleration to 0 km/h</div>
+            </div>
         </div>
-        <div class="kpi-tile" style="margin-top: 12px;">
+        <div class="kpi-tile" style="margin-top: 8px; border-left: 3px solid {'#EF4444' if d_total > 70 else '#10B981'};">
             <div class="kpi-label">Total Emergency Stopping Distance</div>
-            <div class="kpi-value" style="color: {'#EF4444' if stop_dist > 65 else '#10B981'};">{stop_dist:.1f} meters</div>
-            <div class="kpi-subtext">Reaction latency (1.2s) + braking skid distance</div>
+            <div class="kpi-value" style="color: {'#EF4444' if d_total > 70 else '#10B981'};">{d_total:.1f} meters</div>
+            <div class="kpi-subtext">Headway Distance Available: {headway_dist:.1f}m ({'🚨 IMPACT IMMINENT' if d_total > headway_dist else '✅ SAFE STOP ASSURED'})</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1324,18 +1831,57 @@ with tab_report:
     rep_col1, rep_col2 = st.columns([1, 1.2])
 
     with rep_col1:
-        st.markdown("#### Metadata Configuration")
-        incident_id_in = st.text_input("Incident Reference ID", value=curr["incident_id"])
-        location_in = st.text_input("Highway Geofence / Sector", value="NH-48 Chennai-Bengaluru Highway, Km 28.4")
-        surveyor_remarks = st.text_area(
-            "Investigator Findings & Remarks",
-            value="Automated multimodal inspection completed. Visual damage localized, telemetry speed correlated with temporal BiLSTM sequence."
-        )
+        st.markdown("#### Metadata & Surveyor Configuration")
+        incident_id_in = st.text_input("Incident Reference ID", value=curr["incident_id"], key="inc_id_tab6")
+        location_in = st.text_input("Highway Geofence / Sector", value="NH-48 Chennai-Bengaluru Highway, Km 28.4", key="loc_in_tab6")
+
+        m_c1, m_c2 = st.columns(2)
+        with m_c1:
+            lead_investigator = st.text_input("Lead Forensic Investigator", value="Harish AT & Barathraj AS", key="lead_inv_tab6")
+            lead_badge = st.text_input("Investigator Badge / Staff ID", value="PEC-AIML-D16-04", key="lead_badge_tab6")
+        with m_c2:
+            insurer_select = st.selectbox(
+                "Underwriting Insurance Carrier",
+                [
+                    "ICICI Lombard General Insurance",
+                    "Bajaj Allianz General Insurance",
+                    "HDFC ERGO General Insurance",
+                    "The New India Assurance Co.",
+                    "TATA AIG General Insurance"
+                ],
+                key="insurer_select_tab6"
+            )
+            policy_num_in = st.text_input("Policy Certificate Number", value="POL-PEC-2026-994821", key="policy_num_tab6")
+
+        vin_chassis_in = st.text_input("Vehicle VIN / Chassis Identifier", value="MA1TA2DK8N2108849", key="vin_tab6")
 
         st.write("#### Dispatched Emergency Assets:")
-        d_als = st.checkbox("Tier-1 ALS Ambulance Dispatched", value=(curr["overall_risk"] >= 70))
-        d_pol = st.checkbox("Highway Police Sector Alerted", value=(curr["overall_risk"] >= 40))
-        d_tow = st.checkbox("Recovery Towing Dispatched", value=(curr["overall_risk"] >= 50))
+        d_als = st.checkbox("Tier-1 ALS Ambulance Unit #108 Dispatched", value=(curr["overall_risk"] >= 70), key="d_als_tab6")
+        d_pol = st.checkbox("Highway Police Sector Interceptor #04 Dispatched", value=(curr["overall_risk"] >= 40), key="d_pol_tab6")
+        d_tow = st.checkbox("Heavy Recovery Flatbed Dispatched", value=(curr["overall_risk"] >= 50), key="d_tow_tab6")
+        d_pwd = st.checkbox("PWD Emergency Asphalt Repair Crew Dispatched", value=(curr.get("hazard_results", {}).get("hazard_score", 0) >= 38), key="d_pwd_tab6")
+
+        active_dispatches = []
+        if d_als: active_dispatches.append("Ambulance Unit #108")
+        if d_pol: active_dispatches.append("Police Interceptor #04")
+        if d_tow: active_dispatches.append("Flatbed Recovery")
+        if d_pwd: active_dispatches.append("PWD Pothole Patch Crew")
+        dispatches_txt = ", ".join(active_dispatches) if active_dispatches else "None Dispatched (Routine Status)"
+
+        default_remarks = (
+            f"Automated multimodal collision inspection executed on edge node. "
+            f"Underwriter: {insurer_select} (Policy: {policy_num_in}). "
+            f"Vehicle VIN: {vin_chassis_in}. "
+            f"Assessing Officer: {lead_investigator} ({lead_badge}). "
+            f"Dispatched Asset(s): {dispatches_txt}. "
+            f"Telemetry speed: {simulated_speed:.1f} km/h, road friction profile: {env_road}."
+        )
+
+        surveyor_remarks = st.text_area(
+            "Investigator Findings & Remarks",
+            value=default_remarks,
+            key="remarks_tab6"
+        )
 
     with rep_col2:
         st.markdown("#### Live Dossier Preview")
@@ -1343,10 +1889,14 @@ with tab_report:
         <div class="saas-card">
             <b>Institution:</b> Panimalar Engineering College (AIML Batch D16)<br>
             <b>Incident ID:</b> <code>{incident_id_in}</code><br>
+            <b>Lead Investigator:</b> {lead_investigator} (Badge: <code>{lead_badge}</code>)<br>
+            <b>Insurer / Policy:</b> {insurer_select} • <code>{policy_num_in}</code><br>
+            <b>Vehicle VIN:</b> <code>{vin_chassis_in}</code><br>
             <b>Evaluation Modality:</b> {curr['modality']}<br>
             <b>Overall Composite Risk:</b> <span style="font-weight:bold; color:{curr['severity_color']};">{curr['overall_risk']:.1f}%</span><br>
             <b>Status:</b> {curr['severity_label']}<br>
             <b>Geofence Sector:</b> {location_in}<br>
+            <b>Emergency Assets:</b> {dispatches_txt}<br>
             <b>Timestamp:</b> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
         </div>
         """, unsafe_allow_html=True)
@@ -1356,6 +1906,16 @@ with tab_report:
 
     st.markdown("---")
     try:
+        env_dossier = {
+            "weather": env_weather,
+            "lighting": f"{ambient_lux} Lux",
+            "traffic_density": "Moderate Highway Corridor",
+            "multiplier": env_multiplier if 'env_multiplier' in locals() else 1.0,
+            "road_surface": env_road,
+            "vehicle_class": vehicle_type_label,
+            "speed_kmh": f"{simulated_speed:.1f} km/h"
+        }
+
         pdf_bytes = generate_incident_pdf(
             incident_id=incident_id_in,
             modality_type=curr["modality"],
@@ -1365,7 +1925,7 @@ with tab_report:
             violation_results=curr.get("violation_results"),
             hazard_results=curr.get("hazard_results"),
             annotated_image=curr.get("annotated_image"),
-            environmental_factors=curr.get("environmental_factors"),
+            environmental_factors=env_dossier,
             notes=surveyor_remarks
         )
 
@@ -1410,22 +1970,34 @@ with tab_architecture:
     ---
 
     ### 2. Mathematical Formulations
+    
+    #### A. Normalized Bayesian Prior Fusion
+    Cross-modal fusion combines independent telemetry dimensions using dynamically normalized weights:
+    $$\\tilde{W}_i = \\frac{W_i}{\\sum_{k=1}^4 W_k}, \\quad R_{\\text{composite}} = \\min\\left(0.99, \\left[\\sum_{i=1}^4 \\tilde{W}_i \\cdot r_i\\right] \\times \\mathcal{M}_{\\text{env}}\\right)$$
+    where $\\mathcal{M}_{\\text{env}}$ is the compounding atmospheric and friction multiplier.
 
-    #### A. Compounded Probability of Multi-Violation Risk
-    Independent violations do not additively clip at arbitrary ceilings. We formulate risk as the union probability:
+    #### B. Compounded Probability of Multi-Violation Risk
+    Independent infractions are combined through union complementation:
     $$P_{\\text{combined}} = 1 - \\prod_{i=1}^{N} (1 - p_i)$$
     where $p_i \\in [0, 1]$ represents the calibrated risk probability of violation factor $i$.
 
-    #### B. Dynamic Rolling Spatio-Temporal Smoothing
+    #### C. Spatio-Temporal Rolling Sequence Smoothing
     Temporal feature continuity across video frames is smoothed via an exponential moving average (EMA) kernel:
     $$S_t = \\alpha \\cdot s_t + (1 - \\alpha) \\cdot S_{t-1}$$
     where $\\alpha = 0.35$, preventing high-frequency flicker in camera monitoring.
 
-    #### C. Vehicle Stopping Distance & Kinetic Impact
-    Total stopping distance incorporates driver reaction latency $t_{\\text{rxn}}$ and pavement friction coefficient $\\mu$:
-    $$D_{\\text{stopping}} = v \\cdot t_{\\text{rxn}} + \\frac{v^2}{2 \\mu g}$$
-    Impact kinetic energy quadruples with a doubling of velocity:
-    $$E_k = \\frac{1}{2} m v^2$$
+    #### D. Grade-Corrected Vehicle Stopping Distance & Kinetic Impact
+    Total stopping distance incorporates reaction latency $t_{\\text{rxn}}$, grade incline $\\theta$, and ABS-modulated tire friction $\\mu_{\\text{eff}}$:
+    $$D_{\\text{total}} = v \\cdot t_{\\text{rxn}} + \\frac{v^2}{2 g (\\mu_{\\text{eff}} + \\sin\\theta)}, \\quad E_k = \\frac{1}{2} m v^2$$
+
+    #### E. Road Hazard Vertical Shock Load ($G$-Force)
+    Dynamic chassis displacement upon traversing an unpaved depression or pothole:
+    $$G_{\\text{shock}} = \\frac{v^2}{2 \\cdot d_{\\text{cavity}} \\cdot g} \\times K_{\\text{damping}}$$
+    where $K_{\\text{damping}} = 0.075$ is the vehicle sprung-mass compliance factor.
+
+    #### F. Two-Wheeler Dynamic Stability Safety Index ($SSI$)
+    Rider safety balance equilibrium accounts for overcapacity and velocity differential:
+    $$SSI = \\max\\left(5.0, 100.0 - \\Delta_{\\text{speed}} - (N_{\\text{riders}} - 1) \\times 22.0 - \\Delta_{\\text{cargo}}\\right)$$
 
     ---
 
